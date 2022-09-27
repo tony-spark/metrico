@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/tony-spark/metrico/internal"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -30,31 +31,37 @@ func report() {
 	for _, collector := range collectors {
 		collector.Update()
 		for _, metric := range collector.Metrics() {
-			req, err := newRequestWithMetric(metric)
+			err := sendMetric(metric)
 			if err != nil {
 				continue
-			}
-			resp, err := client.Do(req)
-			if err != nil {
-				log.Println(req.RequestURI, err)
-				continue
-			}
-			if resp.StatusCode != http.StatusOK {
-				log.Println(req.RequestURI, resp.StatusCode)
 			}
 		}
 	}
 }
 
-func newRequestWithMetric(metric internal.Metric) (request *http.Request, err error) {
+func sendMetric(metric internal.Metric) error {
 	endpoint := address + "/update/" + metric.Type() + "/" + metric.Name() + "/" + metric.String()
-	request, err = http.NewRequest(http.MethodPost, endpoint, strings.NewReader(""))
+	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(""))
 	if err != nil {
 		log.Println(endpoint, err)
-		return nil, err
+		return err
 	}
-	request.Header.Add("Content-Type", "text/plain")
-	return
+	req.Header.Add("Content-Type", "text/plain")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(req.RequestURI, err)
+		return err
+	}
+	defer resp.Body.Close()
+	_, err = io.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Error reading (empty) body", err.Error())
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Println(req.RequestURI, resp.StatusCode)
+	}
+	return nil
 }
 
 // Run runs agent for collecting mxs data and sending it to server
