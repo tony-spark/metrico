@@ -17,10 +17,15 @@ func counterHandler(repo models.CounterRepository) http.HandlerFunc {
 		if len(ss[0]) == 0 {
 			ss = ss[1:]
 		}
-		if len(ss) != 4 {
+		if len(ss) < 4 {
 			log.Println("Bad request", r.RequestURI)
-			http.Error(w, "URI should be update/counter/<NAME>/<VALUE>", http.StatusBadRequest)
+			http.Error(w, "path should be update/counter/<NAME>/<VALUE>", http.StatusBadRequest)
 			return
+		}
+		if len(ss) > 4 {
+			http.Error(w, "only path supported: update/gauge/<NAME>/<VALUE>", http.StatusNotImplemented)
+			return
+
 		}
 		name := ss[2]
 		svalue := ss[3]
@@ -51,10 +56,15 @@ func gaugeHandler(repo models.GaugeRepository) http.HandlerFunc {
 		if len(ss[0]) == 0 {
 			ss = ss[1:]
 		}
-		if len(ss) != 4 {
+		if len(ss) < 4 {
 			log.Println("Bad request", r.RequestURI)
-			http.Error(w, "URI should be update/gauge/<NAME>/<VALUE>", http.StatusBadRequest)
+			http.Error(w, "path should be update/gauge/<NAME>/<VALUE>", http.StatusBadRequest)
 			return
+		}
+		if len(ss) > 4 {
+			http.Error(w, "only path supported: update/gauge/<NAME>/<VALUE>", http.StatusNotImplemented)
+			return
+
 		}
 		name := ss[2]
 		svalue := ss[3]
