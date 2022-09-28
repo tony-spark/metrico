@@ -1,22 +1,24 @@
 package main
 
 import (
-	"io"
+	"github.com/tony-spark/metrico/internal/server"
 	"log"
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-func loggingHandler(w http.ResponseWriter, r *http.Request) {
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Fatalln(r.Method, r.RequestURI, err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	log.Println(r.Method, r.RequestURI, string(b))
-}
+const (
+	bindAddress = "127.0.0.1:8080"
+)
 
 func main() {
-	http.HandleFunc("/", loggingHandler)
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+	log.Println("Starting metrics server on", bindAddress)
+	go log.Fatal(server.Run(bindAddress))
+
+	terminateSignal := make(chan os.Signal, 1)
+	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
+
+	<-terminateSignal
+	log.Println("Server interrupted")
 }
