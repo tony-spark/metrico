@@ -10,12 +10,22 @@ import (
 	s "strings"
 )
 
-func extractNameValue(w http.ResponseWriter, r *http.Request) (name string, value string, err error) {
-	ss := s.Split(r.URL.Path, "/")
-	// TODO: find more elegant solution for handling leading slash case
-	if len(ss[0]) == 0 {
-		ss = ss[1:]
+func check(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		err := errors.New("only POST supported")
+		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
+		return err
 	}
+	if r.Header.Get("Content-Type") != "text/plain" {
+		err := errors.New("only text/plain supported")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return err
+	}
+	return nil
+}
+
+func extractNameValue(w http.ResponseWriter, r *http.Request) (name string, value string, err error) {
+	ss := s.Split(s.Trim(r.URL.Path, "/"), "/")
 	if len(ss) == 2 {
 		err = errors.New("NAME and VALUE are empty")
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -44,6 +54,11 @@ func extractNameValue(w http.ResponseWriter, r *http.Request) (name string, valu
 // CounterHandler listens update/counter/*, processes update/counter/<NAME>/<VALUE> (value int64)
 func CounterHandler(repo models.CounterRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		err := check(w, r)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
 		name, svalue, err := extractNameValue(w, r)
 		if err != nil {
 			log.Println(err.Error())
@@ -67,6 +82,11 @@ func CounterHandler(repo models.CounterRepository) http.HandlerFunc {
 // GaugeHandler listens update/gauge/*, processes update/gauge/<NAME>/<VALUE> (value float64)
 func GaugeHandler(repo models.GaugeRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		err := check(w, r)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
 		name, svalue, err := extractNameValue(w, r)
 		if err != nil {
 			log.Println(err.Error())
