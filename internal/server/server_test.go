@@ -52,24 +52,42 @@ func TestRouter(t *testing.T) {
 		assert.Equal(t, http.StatusMethodNotAllowed, statusCode)
 	})
 	t.Run("test gauge not found", func(t *testing.T) {
-		statusCode, _ := testRequest(t, ts, "GET", "/update/gauge/absent")
+		statusCode, _ := testRequest(t, ts, "GET", "/value/gauge/absent")
 		assert.Equal(t, http.StatusNotFound, statusCode)
 	})
 	t.Run("test counter not found", func(t *testing.T) {
-		statusCode, _ := testRequest(t, ts, "GET", "/update/counter/absent")
+		statusCode, _ := testRequest(t, ts, "GET", "/value/counter/absent")
 		assert.Equal(t, http.StatusNotFound, statusCode)
 	})
 	t.Run("test gauge read status", func(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "POST", "/update/gauge/test/-13.4523")
 		assert.Equal(t, http.StatusOK, statusCode)
-		statusCode, _ = testRequest(t, ts, "GET", "/update/gauge/test")
+		statusCode, _ = testRequest(t, ts, "GET", "/value/gauge/test")
 		assert.Equal(t, http.StatusOK, statusCode)
 	})
 	t.Run("test counter read status", func(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "POST", "/update/counter/test/10")
 		assert.Equal(t, http.StatusOK, statusCode)
-		statusCode, _ = testRequest(t, ts, "GET", "/update/counter/test")
+		statusCode, _ = testRequest(t, ts, "GET", "/value/counter/test")
 		assert.Equal(t, http.StatusOK, statusCode)
+	})
+	t.Run("test gauge value", func(t *testing.T) {
+		statusCode, body := testRequest(t, ts, "POST", "/update/gauge/test1/-12.34")
+		assert.Equal(t, http.StatusOK, statusCode)
+		statusCode, body = testRequest(t, ts, "GET", "/value/gauge/test1")
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.Equal(t, "-12.34", body)
+	})
+	t.Run("test counter value", func(t *testing.T) {
+		values := []string{"10", "20", "40"}
+		sums := []string{"10", "30", "70"}
+		for i := 0; i < len(values); i++ {
+			statusCode, body := testRequest(t, ts, "POST", "/update/counter/test1/"+values[i])
+			assert.Equal(t, http.StatusOK, statusCode)
+			statusCode, body = testRequest(t, ts, "GET", "/value/counter/test1")
+			assert.Equal(t, http.StatusOK, statusCode)
+			assert.Equal(t, sums[i], body)
+		}
 	})
 }
 
