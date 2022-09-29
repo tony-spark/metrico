@@ -1,15 +1,11 @@
 package models
 
-type NamedValue struct {
-	Name string
-}
-
 type GaugeValue struct {
-	NamedValue
+	Name  string
 	Value float64
 }
 
 type CounterValue struct {
-	NamedValue
+	Name  string
 	Value int64
 }

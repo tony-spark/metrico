@@ -17,6 +17,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Get("/", handlers.PageHandler(gaugeRepo, counterRepo))
 	r.Route("/update", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
 			r.Post("/{name}/{svalue}", handlers.CounterPostHandler(counterRepo))
