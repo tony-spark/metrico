@@ -27,6 +27,10 @@ func TestRouter(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "POST", "/update/counter/")
 		assert.Equal(t, http.StatusNotFound, statusCode)
 	})
+	t.Run("invalid gauge value", func(t *testing.T) {
+		statusCode, _ := testRequest(t, ts, "POST", "/update/gauge/wrong/a1.05")
+		assert.Equal(t, http.StatusBadRequest, statusCode)
+	})
 	t.Run("invalid counter value", func(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "POST", "/update/counter/wrong/1.05")
 		assert.Equal(t, http.StatusBadRequest, statusCode)
@@ -54,6 +58,18 @@ func TestRouter(t *testing.T) {
 	t.Run("test counter not found", func(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "GET", "/update/counter/absent")
 		assert.Equal(t, http.StatusNotFound, statusCode)
+	})
+	t.Run("test gauge read status", func(t *testing.T) {
+		statusCode, _ := testRequest(t, ts, "POST", "/update/gauge/test/-13.4523")
+		assert.Equal(t, http.StatusOK, statusCode)
+		statusCode, _ = testRequest(t, ts, "GET", "/update/gauge/test")
+		assert.Equal(t, http.StatusOK, statusCode)
+	})
+	t.Run("test counter read status", func(t *testing.T) {
+		statusCode, _ := testRequest(t, ts, "POST", "/update/counter/test/10")
+		assert.Equal(t, http.StatusOK, statusCode)
+		statusCode, _ = testRequest(t, ts, "GET", "/update/counter/test")
+		assert.Equal(t, http.StatusOK, statusCode)
 	})
 }
 

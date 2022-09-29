@@ -30,6 +30,7 @@ func (r SingleValueGaugeRepository) Save(name string, value float64) (*models.Ga
 	gauge, ok := r.gauges[name]
 	if !ok {
 		gauge = &models.GaugeValue{NamedValue: models.NamedValue{Name: name}}
+		r.gauges[name] = gauge
 	}
 	gauge.Value = value
 	return gauge, nil
@@ -46,6 +47,7 @@ func (r SingleValueCounterRepository) AddAndSave(name string, value int64) (*mod
 			NamedValue: models.NamedValue{Name: name},
 			Value:      0,
 		}
+		r.counters[name] = counter
 	}
 	counter.Value += value
 	return counter, nil
