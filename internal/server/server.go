@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/tony-spark/metrico/internal/server/handlers"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/storage"
 	"net/http"
@@ -13,9 +14,9 @@ func Run(bindAddress string) error {
 	var gaugeRepo models.GaugeRepository = storage.NewSingleValueGaugeRepository()
 	var counterRepo models.CounterRepository = storage.NewSingleValueCounterRepository()
 
-	http.HandleFunc("/", defaultHandler)
-	http.HandleFunc("/update/counter/", counterHandler(counterRepo))
-	http.HandleFunc("/update/gauge/", gaugeHandler(gaugeRepo))
+	http.HandleFunc("/", handlers.DefaultHandler)
+	http.HandleFunc("/update/counter/", handlers.CounterHandler(counterRepo))
+	http.HandleFunc("/update/gauge/", handlers.GaugeHandler(gaugeRepo))
 
 	return http.ListenAndServe(bindAddress, nil)
 }
