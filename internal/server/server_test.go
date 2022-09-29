@@ -72,9 +72,9 @@ func TestRouter(t *testing.T) {
 		assert.Equal(t, http.StatusOK, statusCode)
 	})
 	t.Run("test gauge value", func(t *testing.T) {
-		statusCode, body := testRequest(t, ts, "POST", "/update/gauge/test1/-12.34")
+		statusCode, _ := testRequest(t, ts, "POST", "/update/gauge/test1/-12.34")
 		assert.Equal(t, http.StatusOK, statusCode)
-		statusCode, body = testRequest(t, ts, "GET", "/value/gauge/test1")
+		statusCode, body := testRequest(t, ts, "GET", "/value/gauge/test1")
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, "-12.34", body)
 	})
@@ -82,9 +82,9 @@ func TestRouter(t *testing.T) {
 		values := []string{"10", "20", "40"}
 		sums := []string{"10", "30", "70"}
 		for i := 0; i < len(values); i++ {
-			statusCode, body := testRequest(t, ts, "POST", "/update/counter/test1/"+values[i])
+			statusCode, _ := testRequest(t, ts, "POST", "/update/counter/test1/"+values[i])
 			assert.Equal(t, http.StatusOK, statusCode)
-			statusCode, body = testRequest(t, ts, "GET", "/value/counter/test1")
+			statusCode, body := testRequest(t, ts, "GET", "/value/counter/test1")
 			assert.Equal(t, http.StatusOK, statusCode)
 			assert.Equal(t, sums[i], body)
 		}
