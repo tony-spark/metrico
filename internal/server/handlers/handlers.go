@@ -16,11 +16,12 @@ func check(w http.ResponseWriter, r *http.Request) error {
 		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
 		return err
 	}
-	if r.Header.Get("Content-Type") != "text/plain" {
-		err := errors.New("only text/plain supported")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return err
-	}
+	// TODO temporarily disabled
+	//if r.Header.Get("Content-Type") != "text/plain" {
+	//	err := errors.New("only text/plain supported")
+	//	http.Error(w, err.Error(), http.StatusBadRequest)
+	//	return err
+	//}
 	return nil
 }
 
