@@ -1,4 +1,4 @@
-package agent
+package metrics
 
 import (
 	"fmt"
@@ -35,8 +35,8 @@ func (r RandomMetric) Type() string {
 	return internal.GAUGE
 }
 
-func (c *RandomMetricCollector) Metrics() []internal.Metric {
-	return []internal.Metric{c.metric}
+func (c *RandomMetricCollector) Metrics() []Metric {
+	return []Metric{c.metric}
 }
 
 func (c *RandomMetricCollector) Update() {

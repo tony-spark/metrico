@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"io"
 	"log"
 	"net/http"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var collectors []internal.MetricCollector
+var collectors []metrics.MetricCollector
 var client http.Client
 var address string
 
@@ -39,7 +39,7 @@ func report() {
 	}
 }
 
-func sendMetric(metric internal.Metric) error {
+func sendMetric(metric metrics.Metric) error {
 	endpoint := address + "/update/" + metric.Type() + "/" + metric.Name() + "/" + metric.String()
 	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(""))
 	if err != nil {
@@ -68,7 +68,7 @@ func sendMetric(metric internal.Metric) error {
 // TODO: way to stop agent (pass Context?)
 func Run(pollInterval time.Duration, reportInterval time.Duration, serverAddress string) {
 	address = serverAddress
-	collectors = append(collectors, NewMemoryMetricCollector(), NewRandomMetricCollector())
+	collectors = append(collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
 	client = http.Client{}
 	pollTicker := time.NewTicker(pollInterval)
 	reportTicker := time.NewTicker(reportInterval)

@@ -1,4 +1,4 @@
-package agent
+package metrics
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ type PollMetric struct {
 }
 
 type MemoryMetricCollector struct {
-	metrics      []internal.Metric
+	metrics      []Metric
 	memStats     *runtime.MemStats
 	refreshCount uint
 }
@@ -145,7 +145,7 @@ func (c *MemoryMetricCollector) Update() {
 	c.refreshCount++
 }
 
-func (c *MemoryMetricCollector) Metrics() []internal.Metric {
+func (c *MemoryMetricCollector) Metrics() []Metric {
 	return c.metrics
 }
 
