@@ -1,38 +1,43 @@
 package agent
 
 import (
+	"errors"
+	"fmt"
+	"github.com/go-resty/resty/v2"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"io"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
+const (
+	endpoint = "/update/{type}/{name}/{value}"
+)
+
 var collectors []metrics.MetricCollector
-var client http.Client
-var address string
+var client *resty.Client
 
 func poll() {
 	log.Println("poll")
 	for _, collector := range collectors {
 		collector.Update()
 		for _, metric := range collector.Metrics() {
-			log.Println(metric.Name(), metric.String())
+			log.Printf("got %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
 		}
 	}
 }
 
 // TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
-// TODO: if report is running simultaneously with poll?
-// TODO: detect server shutdown
+// TODO: what if report is running simultaneously with poll?
+// TODO: detect server shutdown (interrupt current report() and try next time)
 func report() {
-	log.Println("report")
+	log.Println("sending report...")
 	for _, collector := range collectors {
 		collector.Update()
 		for _, metric := range collector.Metrics() {
 			err := sendMetric(metric)
 			if err != nil {
+				log.Println(err.Error())
 				continue
 			}
 		}
@@ -40,36 +45,32 @@ func report() {
 }
 
 func sendMetric(metric metrics.Metric) error {
-	endpoint := address + "/update/" + metric.Type() + "/" + metric.Name() + "/" + metric.String()
-	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(""))
+	req := client.R().
+		SetPathParam("type", metric.Type()).
+		SetPathParam("name", metric.Name()).
+		SetPathParam("value", metric.String()).
+		SetHeader("Content-Type", "text/plain")
+	resp, err := req.Post(endpoint)
 	if err != nil {
-		log.Println(endpoint, err)
 		return err
 	}
-	req.Header.Add("Content-Type", "text/plain")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(req.RequestURI, err)
+	if resp.StatusCode() != http.StatusOK {
+		err = errors.New("send error: value not accepted " + req.URL + " response code: " + fmt.Sprint(resp.StatusCode()))
 		return err
 	}
-	defer resp.Body.Close()
-	_, err = io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Error reading (empty) body", err.Error())
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Println(req.RequestURI, resp.StatusCode)
-	}
+	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
 	return nil
 }
 
 // Run runs agent for collecting mxs data and sending it to server
 // TODO: way to stop agent (pass Context?)
-func Run(pollInterval time.Duration, reportInterval time.Duration, serverAddress string) {
-	address = serverAddress
+func Run(pollInterval time.Duration, reportInterval time.Duration, baseURL string) {
 	collectors = append(collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
-	client = http.Client{}
+
+	client = resty.New()
+	client.SetBaseURL(baseURL)
+	client.SetTimeout(1 * time.Second)
+
 	pollTicker := time.NewTicker(pollInterval)
 	reportTicker := time.NewTicker(reportInterval)
 	defer func() {
