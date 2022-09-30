@@ -6,6 +6,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"log"
+	"net"
 	"net/http"
 	"time"
 )
@@ -29,7 +30,6 @@ func poll() {
 
 // TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
 // TODO: what if report is running concurrently with poll?
-// TODO: detect server shutdown (interrupt current report() and try next time)
 func report() {
 	log.Println("sending report...")
 	for _, collector := range collectors {
@@ -37,6 +37,11 @@ func report() {
 			err := sendMetric(metric)
 			if err != nil {
 				log.Println(err.Error())
+				switch err.(type) {
+				case net.Error:
+					log.Println("network error, interrupting current report...")
+					return
+				}
 				continue
 			}
 		}
@@ -68,7 +73,8 @@ func Run(pollInterval time.Duration, reportInterval time.Duration, baseURL strin
 
 	client = resty.New()
 	client.SetBaseURL(baseURL)
-	client.SetTimeout(1 * time.Second)
+	// TODO think of better timeout value
+	client.SetTimeout(reportInterval / 2)
 
 	pollTicker := time.NewTicker(pollInterval)
 	reportTicker := time.NewTicker(reportInterval)
