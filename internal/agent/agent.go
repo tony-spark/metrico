@@ -28,12 +28,11 @@ func poll() {
 }
 
 // TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
-// TODO: what if report is running simultaneously with poll?
+// TODO: what if report is running concurrently with poll?
 // TODO: detect server shutdown (interrupt current report() and try next time)
 func report() {
 	log.Println("sending report...")
 	for _, collector := range collectors {
-		collector.Update()
 		for _, metric := range collector.Metrics() {
 			err := sendMetric(metric)
 			if err != nil {
@@ -55,7 +54,7 @@ func sendMetric(metric metrics.Metric) error {
 		return err
 	}
 	if resp.StatusCode() != http.StatusOK {
-		err = errors.New("send error: value not accepted " + req.URL + " response code: " + fmt.Sprint(resp.StatusCode()))
+		err = errors.New(fmt.Sprintf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode()))
 		return err
 	}
 	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
