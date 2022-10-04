@@ -18,7 +18,7 @@ const (
 
 func main() {
 	log.Println("Starting metrics agent...")
-	go agent.Run(pollInterval, reportInterval, transports.NewHttpTransport(baseURL))
+	go agent.Run(pollInterval, reportInterval, transports.NewHTTPTransport(baseURL))
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
