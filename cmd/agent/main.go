@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/tony-spark/metrico/internal/agent"
+	"github.com/tony-spark/metrico/internal/agent/transports"
 	"log"
 	"os"
 	"os/signal"
@@ -12,12 +13,12 @@ import (
 const (
 	pollInterval   = 2 * time.Second
 	reportInterval = 10 * time.Second
-	serverAddress  = "http://127.0.0.1:8080"
+	baseURL        = "http://127.0.0.1:8080"
 )
 
 func main() {
 	log.Println("Starting metrics agent...")
-	go agent.Run(pollInterval, reportInterval, serverAddress)
+	go agent.Run(pollInterval, reportInterval, transports.NewHttpTransport(baseURL))
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)

@@ -1,22 +1,15 @@
 package agent
 
 import (
-	"errors"
-	"fmt"
-	"github.com/go-resty/resty/v2"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/agent/transports"
 	"log"
 	"net"
-	"net/http"
 	"time"
 )
 
-const (
-	endpoint = "/update/{type}/{name}/{value}"
-)
-
 var collectors []metrics.MetricCollector
-var client *resty.Client
+var transp transports.Transport
 
 func poll() {
 	log.Println("poll")
@@ -34,10 +27,11 @@ func report() {
 	log.Println("sending report...")
 	for _, collector := range collectors {
 		for _, metric := range collector.Metrics() {
-			err := sendMetric(metric)
+			err := transp.SendMetric(metric)
 			if err != nil {
 				log.Println(err.Error())
 				switch err.(type) {
+				// TODO: move this logic to transport layer
 				case net.Error:
 					log.Println("network error, interrupting current report...")
 					return
@@ -48,33 +42,11 @@ func report() {
 	}
 }
 
-func sendMetric(metric metrics.Metric) error {
-	req := client.R().
-		SetPathParam("type", metric.Type()).
-		SetPathParam("name", metric.Name()).
-		SetPathParam("value", metric.String()).
-		SetHeader("Content-Type", "text/plain")
-	resp, err := req.Post(endpoint)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode() != http.StatusOK {
-		err = errors.New(fmt.Sprintf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode()))
-		return err
-	}
-	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
-	return nil
-}
-
-// Run runs agent for collecting mxs data and sending it to server
+// Run runs agent for collecting metrics data and sending it to server
 // TODO: way to stop agent (pass Context?)
-func Run(pollInterval time.Duration, reportInterval time.Duration, baseURL string) {
+func Run(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport) {
 	collectors = append(collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
-
-	client = resty.New()
-	client.SetBaseURL(baseURL)
-	// TODO think of better timeout value
-	client.SetTimeout(reportInterval / 2)
+	transp = transport
 
 	pollTicker := time.NewTicker(pollInterval)
 	reportTicker := time.NewTicker(reportInterval)
