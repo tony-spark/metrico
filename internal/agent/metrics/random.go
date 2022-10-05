@@ -1,18 +1,16 @@
 package metrics
 
 import (
-	"fmt"
-	"github.com/tony-spark/metrico/internal"
 	"math/rand"
 	"time"
 )
 
-type RandomMetric struct {
-	v float64
-}
+const (
+	metricName = "RandomValue"
+)
 
 type RandomMetricCollector struct {
-	metric RandomMetric
+	metric GaugeMetric
 	rand   *rand.Rand
 }
 
@@ -23,22 +21,10 @@ func NewRandomMetricCollector() *RandomMetricCollector {
 	return rmc
 }
 
-func (r RandomMetric) String() string {
-	return fmt.Sprint(r.v)
-}
-
-func (r RandomMetric) Name() string {
-	return "RandomValue"
-}
-
-func (r RandomMetric) Type() string {
-	return internal.GAUGE
-}
-
 func (c *RandomMetricCollector) Metrics() []Metric {
-	return []Metric{c.metric}
+	return []Metric{NewGaugeMetric(metricName, c.rand.Float64())}
 }
 
 func (c *RandomMetricCollector) Update() {
-	c.metric.v = c.rand.Float64()
+	c.metric.value = c.rand.Float64()
 }
