@@ -139,7 +139,7 @@ func (p PollMetric) Type() string {
 }
 
 func (c *MemoryMetricCollector) Update() {
-	// TODO: ReadMemStats causes stopTheWorld, what should we do about it?
+	// TODO: ReadMemStats causes stopTheWorld, should we do something about it?
 	log.Println("Reading memory statistics")
 	runtime.ReadMemStats(c.memStats)
 	c.refreshCount++

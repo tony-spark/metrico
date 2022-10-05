@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
 	"log"
@@ -8,12 +9,16 @@ import (
 	"time"
 )
 
-var collectors []metrics.MetricCollector
-var transp transports.Transport
+type MetricsAgent struct {
+	collectors     []metrics.MetricCollector
+	transport      transports.Transport
+	pollInterval   time.Duration
+	reportInterval time.Duration
+}
 
-func poll() {
+func (a MetricsAgent) poll() {
 	log.Println("poll")
-	for _, collector := range collectors {
+	for _, collector := range a.collectors {
 		collector.Update()
 		for _, metric := range collector.Metrics() {
 			log.Printf("got %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
@@ -23,15 +28,15 @@ func poll() {
 
 // TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
 // TODO: what if report is running concurrently with poll?
-func report() {
+func (a MetricsAgent) report() {
 	log.Println("sending report...")
-	for _, collector := range collectors {
+	for _, collector := range a.collectors {
 		for _, metric := range collector.Metrics() {
-			err := transp.SendMetric(metric)
+			err := a.transport.SendMetric(metric)
 			if err != nil {
 				log.Println(err.Error())
 				switch err.(type) {
-				// TODO: move this logic to transport layer
+				// TODO: move this logic to transport layer?
 				case net.Error:
 					log.Println("network error, interrupting current report...")
 					return
@@ -42,14 +47,20 @@ func report() {
 	}
 }
 
-// Run runs agent for collecting metrics data and sending it to server
-// TODO: way to stop agent (pass Context?)
-func Run(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport) {
-	collectors = append(collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
-	transp = transport
+func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport) *MetricsAgent {
+	return &MetricsAgent{
+		transport:      transport,
+		pollInterval:   pollInterval,
+		reportInterval: reportInterval,
+	}
+}
 
-	pollTicker := time.NewTicker(pollInterval)
-	reportTicker := time.NewTicker(reportInterval)
+// Run starts collecting metrics and sending it via transport
+func (a MetricsAgent) Run(c context.Context) {
+	a.collectors = append(a.collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
+
+	pollTicker := time.NewTicker(a.pollInterval)
+	reportTicker := time.NewTicker(a.reportInterval)
 	defer func() {
 		pollTicker.Stop()
 		reportTicker.Stop()
@@ -58,9 +69,13 @@ func Run(pollInterval time.Duration, reportInterval time.Duration, transport tra
 	for {
 		select {
 		case <-pollTicker.C:
-			go poll()
+			go a.poll()
 		case <-reportTicker.C:
-			go report()
+			go a.report()
+		case <-c.Done():
+			// TODO: interrupt poll() and report()
+			log.Println("Agent stopped via context")
+			return
 		}
 	}
 }

@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/tony-spark/metrico/internal/agent"
-	"github.com/tony-spark/metrico/internal/agent/transports"
+	"context"
+	a "github.com/tony-spark/metrico/internal/agent"
+	t "github.com/tony-spark/metrico/internal/agent/transports"
 	"log"
 	"os"
 	"os/signal"
@@ -18,11 +19,12 @@ const (
 
 func main() {
 	log.Println("Starting metrics agent...")
-	go agent.Run(pollInterval, reportInterval, transports.NewHTTPTransport(baseURL))
+	agent := a.NewMetricsAgent(pollInterval, reportInterval, t.NewHTTPTransport(baseURL))
+	go agent.Run(context.Background())
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
 
 	<-terminateSignal
-	log.Println("Agent interrupted")
+	log.Println("Application interrupted via system signal")
 }
