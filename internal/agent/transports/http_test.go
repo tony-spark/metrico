@@ -61,7 +61,7 @@ func TestHTTPTransportBadStatus(t *testing.T) {
 
 // TODO: rework this check to be safer? (e.g. use mock transport)
 func TestHTTPTransportConnectionProblem(t *testing.T) {
-	transport := NewHTTPTransport("http://doesnotexists:1010")
+	transport := NewHTTPTransport("http://doesnotexist:1010")
 	err := transport.SendMetric(metrics.NewCounterMetric("Test", 0))
 	t.Run("Counter_errNotNil", func(t *testing.T) {
 		assert.NotNil(t, err)
