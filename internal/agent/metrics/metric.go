@@ -3,12 +3,14 @@ package metrics
 import (
 	"fmt"
 	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/dto"
 )
 
 type Metric interface {
 	fmt.Stringer
 	Name() string
 	Type() string
+	ToDTO() *dto.Metrics
 }
 
 type MetricCollector interface {
@@ -38,6 +40,14 @@ func (g GaugeMetric) Type() string {
 	return internal.GAUGE
 }
 
+func (g GaugeMetric) ToDTO() *dto.Metrics {
+	return &dto.Metrics{
+		ID:    g.name,
+		MType: g.Type(),
+		Value: &g.value,
+	}
+}
+
 func (c CounterMetric) String() string {
 	return fmt.Sprint(c.value)
 }
@@ -48,6 +58,14 @@ func (c CounterMetric) Name() string {
 
 func (c CounterMetric) Type() string {
 	return internal.COUNTER
+}
+
+func (c CounterMetric) ToDTO() *dto.Metrics {
+	return &dto.Metrics{
+		ID:    c.name,
+		MType: c.Type(),
+		Delta: &c.value,
+	}
 }
 
 func NewGaugeMetric(name string, value float64) *GaugeMetric {

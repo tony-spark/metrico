@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	endpointSend = "/update/{type}/{name}/{value}"
+	endpointSend     = "/update/{type}/{name}/{value}"
+	endpointSendJSON = "/update/"
 )
 
 type HTTPTransport struct {
@@ -26,12 +27,30 @@ func NewHTTPTransport(baseURL string) *HTTPTransport {
 }
 
 func (h HTTPTransport) SendMetric(metric metrics.Metric) error {
+	return h.sendJSON(metric)
+}
+
+func (h HTTPTransport) send(metric metrics.Metric) error {
 	req := h.client.R().
 		SetPathParam("type", metric.Type()).
 		SetPathParam("name", metric.Name()).
 		SetPathParam("value", metric.String()).
 		SetHeader("Content-Type", "text/plain")
 	resp, err := req.Post(endpointSend)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
+	}
+	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+	return nil
+}
+
+func (h HTTPTransport) sendJSON(metric metrics.Metric) error {
+	req := h.client.R().
+		SetBody(metric.ToDTO())
+	resp, err := req.Post(endpointSendJSON)
 	if err != nil {
 		return err
 	}

@@ -3,13 +3,14 @@ package metrics
 import (
 	"fmt"
 	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/dto"
 	"log"
 	"runtime"
 )
 
 type MemoryMetric struct {
 	name          string
-	valueFunction func(stats *runtime.MemStats) string
+	valueFunction func(stats *runtime.MemStats) float64
 	collector     *MemoryMetricCollector
 }
 
@@ -29,92 +30,92 @@ func NewMemoryMetricCollector() *MemoryMetricCollector {
 	}
 	mmc.addCountMetric()
 	// TODO: use reflection?
-	mmc.addMemoryMetric("Alloc", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.Alloc)
+	mmc.addMemoryMetric("Alloc", func(stats *runtime.MemStats) float64 {
+		return float64(stats.Alloc)
 	})
-	mmc.addMemoryMetric("BuckHashSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.BuckHashSys)
+	mmc.addMemoryMetric("BuckHashSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.BuckHashSys)
 	})
-	mmc.addMemoryMetric("Frees", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.Frees)
+	mmc.addMemoryMetric("Frees", func(stats *runtime.MemStats) float64 {
+		return float64(stats.Frees)
 	})
-	mmc.addMemoryMetric("GCCPUFraction", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.GCCPUFraction)
+	mmc.addMemoryMetric("GCCPUFraction", func(stats *runtime.MemStats) float64 {
+		return stats.GCCPUFraction
 	})
-	mmc.addMemoryMetric("GCSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.GCSys)
+	mmc.addMemoryMetric("GCSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.GCSys)
 	})
-	mmc.addMemoryMetric("HeapAlloc", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.HeapAlloc)
+	mmc.addMemoryMetric("HeapAlloc", func(stats *runtime.MemStats) float64 {
+		return float64(stats.HeapAlloc)
 	})
-	mmc.addMemoryMetric("HeapIdle", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.HeapIdle)
+	mmc.addMemoryMetric("HeapIdle", func(stats *runtime.MemStats) float64 {
+		return float64(stats.HeapIdle)
 	})
-	mmc.addMemoryMetric("HeapInuse", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.HeapInuse)
+	mmc.addMemoryMetric("HeapInuse", func(stats *runtime.MemStats) float64 {
+		return float64(stats.HeapInuse)
 	})
-	mmc.addMemoryMetric("HeapObjects", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.HeapObjects)
+	mmc.addMemoryMetric("HeapObjects", func(stats *runtime.MemStats) float64 {
+		return float64(stats.HeapObjects)
 	})
-	mmc.addMemoryMetric("HeapReleased", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.HeapReleased)
+	mmc.addMemoryMetric("HeapReleased", func(stats *runtime.MemStats) float64 {
+		return float64(stats.HeapReleased)
 	})
-	mmc.addMemoryMetric("HeapSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.HeapSys)
+	mmc.addMemoryMetric("HeapSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.HeapSys)
 	})
-	mmc.addMemoryMetric("LastGC", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.LastGC)
+	mmc.addMemoryMetric("LastGC", func(stats *runtime.MemStats) float64 {
+		return float64(stats.LastGC)
 	})
-	mmc.addMemoryMetric("Lookups", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.Lookups)
+	mmc.addMemoryMetric("Lookups", func(stats *runtime.MemStats) float64 {
+		return float64(stats.Lookups)
 	})
-	mmc.addMemoryMetric("MCacheInuse", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.MCacheInuse)
+	mmc.addMemoryMetric("MCacheInuse", func(stats *runtime.MemStats) float64 {
+		return float64(stats.MCacheInuse)
 	})
-	mmc.addMemoryMetric("MCacheSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.MCacheSys)
+	mmc.addMemoryMetric("MCacheSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.MCacheSys)
 	})
-	mmc.addMemoryMetric("MSpanInuse", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.MSpanInuse)
+	mmc.addMemoryMetric("MSpanInuse", func(stats *runtime.MemStats) float64 {
+		return float64(stats.MSpanInuse)
 	})
-	mmc.addMemoryMetric("MSpanSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.MSpanSys)
+	mmc.addMemoryMetric("MSpanSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.MSpanSys)
 	})
-	mmc.addMemoryMetric("Mallocs", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.Mallocs)
+	mmc.addMemoryMetric("Mallocs", func(stats *runtime.MemStats) float64 {
+		return float64(stats.Mallocs)
 	})
-	mmc.addMemoryMetric("NextGC", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.NextGC)
+	mmc.addMemoryMetric("NextGC", func(stats *runtime.MemStats) float64 {
+		return float64(stats.NextGC)
 	})
-	mmc.addMemoryMetric("NumForcedGC", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.NumForcedGC)
+	mmc.addMemoryMetric("NumForcedGC", func(stats *runtime.MemStats) float64 {
+		return float64(stats.NumForcedGC)
 	})
-	mmc.addMemoryMetric("NumGC", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.NumGC)
+	mmc.addMemoryMetric("NumGC", func(stats *runtime.MemStats) float64 {
+		return float64(stats.NumGC)
 	})
-	mmc.addMemoryMetric("OtherSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.OtherSys)
+	mmc.addMemoryMetric("OtherSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.OtherSys)
 	})
-	mmc.addMemoryMetric("PauseTotalNs", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.PauseTotalNs)
+	mmc.addMemoryMetric("PauseTotalNs", func(stats *runtime.MemStats) float64 {
+		return float64(stats.PauseTotalNs)
 	})
-	mmc.addMemoryMetric("StackInuse", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.StackInuse)
+	mmc.addMemoryMetric("StackInuse", func(stats *runtime.MemStats) float64 {
+		return float64(stats.StackInuse)
 	})
-	mmc.addMemoryMetric("StackSys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.StackSys)
+	mmc.addMemoryMetric("StackSys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.StackSys)
 	})
-	mmc.addMemoryMetric("Sys", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.Sys)
+	mmc.addMemoryMetric("Sys", func(stats *runtime.MemStats) float64 {
+		return float64(stats.Sys)
 	})
-	mmc.addMemoryMetric("TotalAlloc", func(stats *runtime.MemStats) string {
-		return fmt.Sprint(stats.TotalAlloc)
+	mmc.addMemoryMetric("TotalAlloc", func(stats *runtime.MemStats) float64 {
+		return float64(stats.TotalAlloc)
 	})
 	return mmc
 }
 
 func (m MemoryMetric) String() string {
-	return m.valueFunction(m.collector.memStats)
+	return fmt.Sprint(m.valueFunction(m.collector.memStats))
 }
 
 func (m MemoryMetric) Name() string {
@@ -122,8 +123,16 @@ func (m MemoryMetric) Name() string {
 }
 
 func (m MemoryMetric) Type() string {
-	// TODO: all runtime metrics are gauge?
 	return internal.GAUGE
+}
+
+func (m MemoryMetric) ToDTO() *dto.Metrics {
+	value := m.valueFunction(m.collector.memStats)
+	return &dto.Metrics{
+		ID:    m.name,
+		MType: m.Type(),
+		Value: &value,
+	}
 }
 
 func (p PollMetric) String() string {
@@ -138,6 +147,15 @@ func (p PollMetric) Type() string {
 	return internal.COUNTER
 }
 
+func (p PollMetric) ToDTO() *dto.Metrics {
+	value := int64(p.collector.refreshCount)
+	return &dto.Metrics{
+		ID:    p.Name(),
+		MType: p.Type(),
+		Delta: &value,
+	}
+}
+
 func (c *MemoryMetricCollector) Update() {
 	// TODO: ReadMemStats causes stopTheWorld, should we do something about it?
 	log.Println("Reading memory statistics")
@@ -149,7 +167,7 @@ func (c *MemoryMetricCollector) Metrics() []Metric {
 	return c.metrics
 }
 
-func (c *MemoryMetricCollector) addMemoryMetric(name string, valueFunction func(stats *runtime.MemStats) string) {
+func (c *MemoryMetricCollector) addMemoryMetric(name string, valueFunction func(stats *runtime.MemStats) float64) {
 	metric := MemoryMetric{
 		name:          name,
 		valueFunction: valueFunction,
