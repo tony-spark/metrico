@@ -28,7 +28,10 @@ func main() {
 
 	log.Printf("Starting metrics agent %+v \n", cfg)
 
-	agent := a.NewMetricsAgent(time.Duration(cfg.PollInterval)*time.Second, time.Duration(cfg.ReportInterval)*time.Second, t.NewHTTPTransport(cfg.Address))
+	agent := a.NewMetricsAgent(
+		time.Duration(cfg.PollInterval)*time.Second,
+		time.Duration(cfg.ReportInterval)*time.Second,
+		t.NewHTTPTransport("http://"+cfg.Address))
 	go agent.Run(context.Background())
 
 	terminateSignal := make(chan os.Signal, 1)
