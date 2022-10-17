@@ -25,6 +25,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 		r.Route("/gauge", func(r chi.Router) {
 			r.Post("/{name}/{svalue}", handlers.GaugePostHandler(gaugeRepo))
 		})
+		r.Post("/", handlers.UpdatePostHandler(gaugeRepo, counterRepo))
 		r.HandleFunc("/*", handleUnknown)
 	})
 	r.Route("/value", func(r chi.Router) {
@@ -34,6 +35,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 		r.Route("/gauge", func(r chi.Router) {
 			r.Get("/{name}", handlers.GaugeGetHandler(gaugeRepo))
 		})
+		r.Post("/", handlers.GetPostHandler(gaugeRepo, counterRepo))
 		r.HandleFunc("/*", handleUnknown)
 	})
 

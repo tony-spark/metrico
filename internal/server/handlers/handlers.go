@@ -1,16 +1,137 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"html/template"
+	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"sort"
 	"strconv"
 )
+
+func checkContentType(w http.ResponseWriter, r *http.Request) error {
+	ctype := r.Header.Get("Content-Type")
+	t, _, err := mime.ParseMediaType(ctype)
+	if err != nil || t != "application/json" {
+		http.Error(w, "Only application/json supported", http.StatusUnsupportedMediaType)
+		return err
+	}
+	return nil
+}
+
+func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metrics, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Could not read body", http.StatusBadRequest)
+		return nil, err
+	}
+	var m dto.Metrics
+	err = json.Unmarshal(body, &m)
+	if err != nil {
+		http.Error(w, "Could not parse json", http.StatusBadRequest)
+		return nil, err
+	}
+	if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+		http.Error(w, "Unknown metric type", http.StatusBadRequest)
+		return nil, fmt.Errorf("unknown metric type: %v", m.MType)
+	}
+	return &m, nil
+}
+
+func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := checkContentType(w, r); err != nil {
+			log.Println(err.Error())
+			return
+		}
+		m, err := readMetrics(w, r)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		switch m.MType {
+		case internal.GAUGE:
+			if m.Value == nil {
+				http.Error(w, "gauge value is null", http.StatusBadRequest)
+				return
+			}
+			g, err := gaugeRepo.Save(m.ID, *m.Value)
+			if err != nil {
+				http.Error(w, "could not save gauge value", http.StatusInternalServerError)
+			}
+			m.Value = &g.Value
+		case internal.COUNTER:
+			if m.Delta == nil {
+				http.Error(w, "counter value is null", http.StatusBadRequest)
+				return
+			}
+			c, err := counterRepo.AddAndSave(m.ID, *m.Delta)
+			if err != nil {
+				http.Error(w, "could not update counter value", http.StatusInternalServerError)
+			}
+			m.Delta = &c.Value
+		}
+		b, err := json.Marshal(m)
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	}
+}
+
+func GetPostHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := checkContentType(w, r); err != nil {
+			log.Println(err.Error())
+			return
+		}
+		m, err := readMetrics(w, r)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		switch m.MType {
+		case internal.GAUGE:
+			g, err := gaugeRepo.GetByName(m.ID)
+			if err != nil {
+				http.Error(w, "could not retrieve gauge value", http.StatusInternalServerError)
+				return
+			}
+			if g == nil {
+				http.Error(w, "gauge not found", http.StatusNotFound)
+				return
+			}
+			m.Value = &g.Value
+		case internal.COUNTER:
+			c, err := counterRepo.GetByName(m.ID)
+			if err != nil {
+				http.Error(w, "could not retrieve counter value", http.StatusInternalServerError)
+				return
+			}
+			if c == nil {
+				http.Error(w, "counter not found", http.StatusNotFound)
+				return
+			}
+			m.Delta = &c.Value
+		}
+		b, err := json.Marshal(m)
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	}
+}
 
 func CounterGetHandler(repo models.CounterRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
