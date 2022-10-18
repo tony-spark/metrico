@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -22,7 +23,7 @@ func main() {
 	}
 
 	log.Println("Starting metrics server on", cfg.Address)
-	go log.Fatal(server.Run(cfg.Address))
+	go log.Fatal(server.Run(strings.Trim(cfg.Address, "\"")))
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)

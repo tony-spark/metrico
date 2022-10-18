@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -28,10 +29,12 @@ func main() {
 
 	log.Printf("Starting metrics agent %+v \n", cfg)
 
+	baseURL := "http://" + strings.Trim(cfg.Address, "\"")
+
 	agent := a.NewMetricsAgent(
 		time.Duration(cfg.PollInterval)*time.Second,
 		time.Duration(cfg.ReportInterval)*time.Second,
-		t.NewHTTPTransport("http://"+cfg.Address))
+		t.NewHTTPTransport(baseURL))
 	go agent.Run(context.Background())
 
 	terminateSignal := make(chan os.Signal, 1)
