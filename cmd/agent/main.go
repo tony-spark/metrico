@@ -14,9 +14,9 @@ import (
 )
 
 type config struct {
-	Address        string `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	ReportInterval uint   `env:"REPORT_INTERVAL" envDefault:"10"`
-	PollInterval   uint   `env:"POLL_INTERVAL" envDefault:"2"`
+	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
 }
 
 func main() {
@@ -32,8 +32,8 @@ func main() {
 	baseURL := "http://" + strings.Trim(cfg.Address, "\"")
 
 	agent := a.NewMetricsAgent(
-		time.Duration(cfg.PollInterval)*time.Second,
-		time.Duration(cfg.ReportInterval)*time.Second,
+		cfg.PollInterval,
+		cfg.ReportInterval,
 		t.NewHTTPTransport(baseURL))
 	go agent.Run(context.Background())
 
