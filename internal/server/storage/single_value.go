@@ -63,3 +63,12 @@ func (r SingleValueCounterRepository) AddAndSave(name string, value int64) (*mod
 	counter.Value += value
 	return counter, nil
 }
+
+func (r SingleValueCounterRepository) Save(name string, value int64) (*models.CounterValue, error) {
+	counter := &models.CounterValue{
+		Name:  name,
+		Value: value,
+	}
+	r.counters[name] = counter
+	return counter, nil
+}

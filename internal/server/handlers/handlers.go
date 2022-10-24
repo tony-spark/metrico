@@ -45,7 +45,7 @@ func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metrics, error) {
 	return &m, nil
 }
 
-func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository) http.HandlerFunc {
+func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func()) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Println(err.Error())
@@ -85,6 +85,9 @@ func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Coun
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(b)
+		if postUpdateFn != nil {
+			postUpdateFn()
+		}
 	}
 }
 
@@ -149,7 +152,7 @@ func CounterGetHandler(repo models.CounterRepository) http.HandlerFunc {
 	}
 }
 
-func CounterPostHandler(repo models.CounterRepository) http.HandlerFunc {
+func CounterPostHandler(repo models.CounterRepository, postUpdateFn func()) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		svalue := chi.URLParam(r, "svalue")
@@ -164,6 +167,9 @@ func CounterPostHandler(repo models.CounterRepository) http.HandlerFunc {
 			log.Println("Could not add and save counter value", name, value)
 			http.Error(w, "Could not add and save counter value", http.StatusInternalServerError)
 			return
+		}
+		if postUpdateFn != nil {
+			postUpdateFn()
 		}
 	}
 }
@@ -184,7 +190,7 @@ func GaugeGetHandler(repo models.GaugeRepository) http.HandlerFunc {
 	}
 }
 
-func GaugePostHandler(repo models.GaugeRepository) http.HandlerFunc {
+func GaugePostHandler(repo models.GaugeRepository, postUpdateFn func()) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		svalue := chi.URLParam(r, "svalue")
@@ -199,6 +205,9 @@ func GaugePostHandler(repo models.GaugeRepository) http.HandlerFunc {
 			log.Println("Could not save gauge value", name, value)
 			http.Error(w, "Could not save gauge value", http.StatusInternalServerError)
 			return
+		}
+		if postUpdateFn != nil {
+			postUpdateFn()
 		}
 	}
 }

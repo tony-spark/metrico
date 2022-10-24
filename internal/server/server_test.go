@@ -15,7 +15,7 @@ import (
 )
 
 func TestRouter(t *testing.T) {
-	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository())
+	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository(), nil)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
