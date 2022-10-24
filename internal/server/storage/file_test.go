@@ -9,7 +9,9 @@ import (
 func TestJSONFilePersistence(t *testing.T) {
 	t.Run("simple save and load", func(t *testing.T) {
 		tempf, err := os.CreateTemp(os.TempDir(), "json-persistence-test")
-		defer tempf.Close()
+		if err != nil {
+			defer tempf.Close()
+		}
 		assert.Nil(t, err)
 		jfp, err := NewJSONFilePersistence(tempf.Name())
 		assert.Nil(t, err)
