@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"github.com/caarlos0/env/v6"
 	a "github.com/tony-spark/metrico/internal/agent"
 	t "github.com/tony-spark/metrico/internal/agent/transports"
@@ -14,20 +15,25 @@ import (
 )
 
 type config struct {
-	Address        string        `env:"ADDRESS" envDefault:"127.0.0.1:8080"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL" envDefault:"10s"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL" envDefault:"2s"`
+	Address        string        `env:"ADDRESS"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 }
 
 func main() {
 	cfg := config{}
+
+	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address to send metrics to")
+	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "report interval")
+	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "poll interval")
+	flag.Parse()
 
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal("Could not parse config")
 	}
 
-	log.Printf("Starting metrics agent %+v \n", cfg)
+	log.Printf("Starting metrics agent with config %+v \n", cfg)
 
 	baseURL := "http://" + strings.Trim(cfg.Address, "\"")
 
