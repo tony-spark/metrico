@@ -18,6 +18,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.Compress(5))
 
 	r.Get("/", handlers.PageHandler(gaugeRepo, counterRepo))
 	r.Route("/update", func(r chi.Router) {
