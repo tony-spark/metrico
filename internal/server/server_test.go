@@ -95,7 +95,7 @@ func TestRouter(t *testing.T) {
 	})
 	t.Run("test gauge update (post)", func(t *testing.T) {
 		v := float64(10.0)
-		mreq := &dto.Metrics{
+		mreq := &dto.Metric{
 			ID:    "UpdateTest1",
 			MType: internal.GAUGE,
 			Value: &v,
@@ -106,7 +106,7 @@ func TestRouter(t *testing.T) {
 	})
 	t.Run("test counter update (post)", func(t *testing.T) {
 		v := int64(10)
-		mreq := &dto.Metrics{
+		mreq := &dto.Metric{
 			ID:    "UpdateTest2",
 			MType: internal.COUNTER,
 			Delta: &v,
@@ -131,7 +131,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 	return resp.StatusCode, string(respBody)
 }
 
-func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, m *dto.Metrics) (int, *dto.Metrics) {
+func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, m *dto.Metric) (int, *dto.Metric) {
 	b, err := json.Marshal(*m)
 	require.NoError(t, err)
 
@@ -147,7 +147,7 @@ func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, m
 	defer resp.Body.Close()
 	require.NoError(t, err)
 
-	var result dto.Metrics
+	var result dto.Metric
 	err = json.Unmarshal(respBody, &result)
 	require.NoError(t, err)
 

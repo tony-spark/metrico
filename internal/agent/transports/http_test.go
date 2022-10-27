@@ -20,10 +20,10 @@ func TestHTTPTransportGauge(t *testing.T) {
 			assert.Equal(t, "/update/", r.URL.Path)
 			bs, err := io.ReadAll(r.Body)
 			assert.Nil(t, err)
-			var m dto.Metrics
+			var m dto.Metric
 			err = json.Unmarshal(bs, &m)
 			assert.Nil(t, err)
-			expected := dto.Metrics{
+			expected := dto.Metric{
 				ID:    name,
 				MType: internal.GAUGE,
 				Delta: nil,
@@ -49,10 +49,10 @@ func TestHTTPTransportCounter(t *testing.T) {
 			assert.Equal(t, "/update/", r.URL.Path)
 			bs, err := io.ReadAll(r.Body)
 			assert.Nil(t, err)
-			var m dto.Metrics
+			var m dto.Metric
 			err = json.Unmarshal(bs, &m)
 			assert.Nil(t, err)
-			expected := dto.Metrics{
+			expected := dto.Metric{
 				ID:    name,
 				MType: internal.COUNTER,
 				Delta: &value,

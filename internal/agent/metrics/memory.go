@@ -126,9 +126,9 @@ func (m MemoryMetric) Type() string {
 	return internal.GAUGE
 }
 
-func (m MemoryMetric) ToDTO() *dto.Metrics {
+func (m MemoryMetric) ToDTO() *dto.Metric {
 	value := m.valueFunction(m.collector.memStats)
-	return &dto.Metrics{
+	return &dto.Metric{
 		ID:    m.name,
 		MType: m.Type(),
 		Value: &value,
@@ -147,9 +147,9 @@ func (p PollMetric) Type() string {
 	return internal.COUNTER
 }
 
-func (p PollMetric) ToDTO() *dto.Metrics {
+func (p PollMetric) ToDTO() *dto.Metric {
 	value := int64(p.collector.refreshCount)
-	return &dto.Metrics{
+	return &dto.Metric{
 		ID:    p.Name(),
 		MType: p.Type(),
 		Delta: &value,

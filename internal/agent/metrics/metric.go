@@ -10,7 +10,7 @@ type Metric interface {
 	fmt.Stringer
 	Name() string
 	Type() string
-	ToDTO() *dto.Metrics
+	ToDTO() *dto.Metric
 }
 
 type MetricCollector interface {
@@ -40,8 +40,8 @@ func (g GaugeMetric) Type() string {
 	return internal.GAUGE
 }
 
-func (g GaugeMetric) ToDTO() *dto.Metrics {
-	return &dto.Metrics{
+func (g GaugeMetric) ToDTO() *dto.Metric {
+	return &dto.Metric{
 		ID:    g.name,
 		MType: g.Type(),
 		Value: &g.value,
@@ -60,8 +60,8 @@ func (c CounterMetric) Type() string {
 	return internal.COUNTER
 }
 
-func (c CounterMetric) ToDTO() *dto.Metrics {
-	return &dto.Metrics{
+func (c CounterMetric) ToDTO() *dto.Metric {
+	return &dto.Metric{
 		ID:    c.name,
 		MType: c.Type(),
 		Delta: &c.value,

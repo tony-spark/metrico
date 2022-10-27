@@ -26,13 +26,13 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metrics, error) {
+func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, err
 	}
-	var m dto.Metrics
+	var m dto.Metric
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
