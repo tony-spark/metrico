@@ -1,8 +1,12 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/server/storage"
 	"io"
 	"net/http"
@@ -11,7 +15,7 @@ import (
 )
 
 func TestRouter(t *testing.T) {
-	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository())
+	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository(), nil)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
@@ -89,6 +93,28 @@ func TestRouter(t *testing.T) {
 			assert.Equal(t, sums[i], body)
 		}
 	})
+	t.Run("test gauge update (post)", func(t *testing.T) {
+		v := float64(10.0)
+		mreq := &dto.Metric{
+			ID:    "UpdateTest1",
+			MType: internal.GAUGE,
+			Value: &v,
+		}
+		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.Equal(t, *mreq.Value, *mresp.Value)
+	})
+	t.Run("test counter update (post)", func(t *testing.T) {
+		v := int64(10)
+		mreq := &dto.Metric{
+			ID:    "UpdateTest2",
+			MType: internal.COUNTER,
+			Delta: &v,
+		}
+		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.Equal(t, *mreq.Delta, *mresp.Delta)
+	})
 }
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string) {
@@ -99,9 +125,31 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 	require.NoError(t, err)
 
 	respBody, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	require.NoError(t, err)
 
-	defer resp.Body.Close()
-
 	return resp.StatusCode, string(respBody)
+}
+
+func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, m *dto.Metric) (int, *dto.Metric) {
+	b, err := json.Marshal(*m)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(method, ts.URL+path, bytes.NewReader(b))
+	require.NoError(t, err)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	respBody, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	require.NoError(t, err)
+
+	var result dto.Metric
+	err = json.Unmarshal(respBody, &result)
+	require.NoError(t, err)
+
+	return resp.StatusCode, &result
 }
