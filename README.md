@@ -1,32 +1,6 @@
-# go-musthave-devops-tpl
+# metrico
 
-Шаблон репозитория для практического трека «Go в DevOps».
+Сервер и агент сбора метрик
 
-# Начало работы
-
-1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.
-2. В корне репозитория выполните команду `go mod init <name>` (где `<name>` - адрес вашего репозитория на GitHub без префикса `https://`) для создания модуля.
-
-# Обновление шаблона
-
-Чтобы получать обновления автотестов и других частей шаблона, выполните следующую команду:
-
-```
-git remote add -m main template https://github.com/yandex-praktikum/go-musthave-devops-tpl.git
-```
-
-Для обновления кода автотестов выполните команду:
-
-(Для Unix систем)
-
-```
-git fetch template && git checkout template/main .github
-```
-
-(Для Windows PowerShell)
-
-```
-(git fetch template) -and (git checkout template/main .github)
-```
-
-Затем добавьте полученные изменения в свой репозиторий.
+[![go vet test](https://github.com/tony-spark/metrico/actions/workflows/statictest.yml/badge.svg?branch=main)](https://github.com/tony-spark/metrico/actions/workflows/statictest.yml)
+[![autotests](https://github.com/tony-spark/metrico/actions/workflows/devopstest.yml/badge.svg?branch=main)](https://github.com/tony-spark/metrico/actions/workflows/devopstest.yml)
