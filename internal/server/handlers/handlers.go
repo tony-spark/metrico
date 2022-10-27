@@ -27,6 +27,7 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 }
 
 func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
+	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)

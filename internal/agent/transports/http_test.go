@@ -3,6 +3,7 @@ package transports
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/dto"
@@ -47,8 +48,9 @@ func TestHTTPTransportCounter(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Run("counter valid payload", func(t *testing.T) {
 			assert.Equal(t, "/update/", r.URL.Path)
+			defer r.Body.Close()
 			bs, err := io.ReadAll(r.Body)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 			var m dto.Metric
 			err = json.Unmarshal(bs, &m)
 			assert.Nil(t, err)
