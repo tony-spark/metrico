@@ -58,6 +58,7 @@ func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Coun
 			return
 		}
 		switch m.MType {
+		// TODO: simplify code (get rid of code dup)
 		case internal.GAUGE:
 			if m.Value == nil {
 				http.Error(w, "gauge value is null", http.StatusBadRequest)

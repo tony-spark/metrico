@@ -66,6 +66,7 @@ func Run(ctx context.Context, bindAddress string, storeFilename string, restore 
 		}
 	}
 	var postUpdateFn func() = nil
+	// TODO: simplify code (extract ticker logic to service?)
 	if storeInterval > 0 {
 		saveTicker := time.NewTicker(storeInterval)
 		defer saveTicker.Stop()
