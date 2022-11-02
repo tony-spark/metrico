@@ -1,6 +1,9 @@
 package models
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 type GaugeRepository interface {
 	GetByName(name string) (*GaugeValue, error)
@@ -13,6 +16,10 @@ type CounterRepository interface {
 	AddAndSave(name string, value int64) (*CounterValue, error)
 	Save(name string, value int64) (*CounterValue, error)
 	GetAll() ([]*CounterValue, error)
+}
+
+type DBRepository interface {
+	Check(ctx context.Context) (bool, error)
 }
 
 type RepositoryPersistence interface {

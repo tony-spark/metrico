@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -22,6 +21,7 @@ func main() {
 	flag.StringVar(&cfg.StoreFilename, "f", "/tmp/devops-metrics-db.json", "file to persist metrics")
 	flag.BoolVar(&cfg.Restore, "r", true, "whether to load metric from file on start")
 	flag.StringVar(&cfg.Key, "k", "", "hash key")
+	flag.StringVar(&cfg.DSN, "d", "", "database connection string")
 	flag.Parse()
 
 	err := env.Parse(&cfg)
@@ -32,7 +32,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Printf("Starting metrics server with config %+v\n", cfg)
-	go log.Fatal(server.Run(ctx, strings.Trim(cfg.Address, "\""), cfg.StoreFilename, cfg.Restore, cfg.StoreInterval, cfg.Key))
+	go log.Fatal(server.Run(ctx, cfg))
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)

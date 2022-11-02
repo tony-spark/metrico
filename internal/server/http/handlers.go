@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -305,6 +306,20 @@ func (router Router) PageHandler() http.HandlerFunc {
 		err = t.Execute(w, data)
 		if err != nil {
 			http.Error(w, "Could not display metrics", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (router Router) PingHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if router.dbr == nil {
+			http.Error(w, "DB connection is not configured", http.StatusServiceUnavailable)
+			return
+		}
+		ok, err := router.dbr.Check(context.Background())
+		if err != nil || !ok {
+			http.Error(w, "could not check DB or DB is not OK", http.StatusInternalServerError)
 			return
 		}
 	}

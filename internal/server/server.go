@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/hash"
+	"github.com/tony-spark/metrico/internal/server/config"
 	router "github.com/tony-spark/metrico/internal/server/http"
+	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/storage"
 	"net/http"
 	"time"
@@ -13,10 +15,10 @@ import (
 // Run starts a server for collecting metrics using HTTP API
 //
 // HTTP server listens bindAddress
-func Run(ctx context.Context, bindAddress string, storeFilename string, restore bool, storeInterval time.Duration, key string) error {
+func Run(ctx context.Context, cfg config.Config) error {
 	gr := storage.NewSingleValueGaugeRepository()
 	cr := storage.NewSingleValueCounterRepository()
-	store, err := storage.NewJSONFilePersistence(storeFilename)
+	store, err := storage.NewJSONFilePersistence(cfg.StoreFilename)
 	defer func() {
 		store.Save(gr, cr)
 		store.Close()
@@ -24,7 +26,7 @@ func Run(ctx context.Context, bindAddress string, storeFilename string, restore 
 	if err != nil {
 		return err
 	}
-	if restore {
+	if cfg.Restore {
 		err = store.Load(gr, cr)
 		if err != nil {
 			return err
@@ -32,8 +34,8 @@ func Run(ctx context.Context, bindAddress string, storeFilename string, restore 
 	}
 	var postUpdateFn func() = nil
 	// TODO: simplify code (extract ticker logic to service?)
-	if storeInterval > 0 {
-		saveTicker := time.NewTicker(storeInterval)
+	if cfg.StoreInterval > 0 {
+		saveTicker := time.NewTicker(cfg.StoreInterval)
 		defer saveTicker.Stop()
 		go func() {
 			for {
@@ -51,9 +53,16 @@ func Run(ctx context.Context, bindAddress string, storeFilename string, restore 
 		}
 	}
 	var h dto.Hasher
-	if len(key) > 0 {
-		h = hash.NewSha256Keyed(key)
+	if len(cfg.Key) > 0 {
+		h = hash.NewSha256Keyed(cfg.Key)
 	}
-	return http.ListenAndServe(bindAddress,
-		router.NewRouter(gr, cr, postUpdateFn, h).R)
+	var dbr models.DBRepository
+	if len(cfg.DSN) > 0 {
+		dbr, err = storage.NewPsqlRepository(cfg.DSN)
+		if err != nil {
+			return err
+		}
+	}
+	return http.ListenAndServe(cfg.Address,
+		router.NewRouter(gr, cr, postUpdateFn, h, dbr).R)
 }

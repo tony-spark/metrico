@@ -13,9 +13,10 @@ type Router struct {
 	cr         models.CounterRepository
 	postUpdate func()
 	h          dto.Hasher
+	dbr        models.DBRepository
 }
 
-func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func(), h dto.Hasher) *Router {
+func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func(), h dto.Hasher, dbr models.DBRepository) *Router {
 	r := chi.NewRouter()
 
 	router := &Router{
@@ -24,6 +25,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 		cr:         counterRepo,
 		postUpdate: postUpdateFn,
 		h:          h,
+		dbr:        dbr,
 	}
 
 	r.Use(middleware.RequestID)
@@ -53,6 +55,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 		r.Post("/", router.GetPostHandler())
 		r.HandleFunc("/*", handleUnknown)
 	})
+	r.Get("/ping", router.PingHandler())
 
 	return router
 }
