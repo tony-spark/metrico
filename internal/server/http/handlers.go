@@ -1,4 +1,4 @@
-package handlers
+package http
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
-	"github.com/tony-spark/metrico/internal/server/models"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -46,7 +45,7 @@ func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	return &m, nil
 }
 
-func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func()) http.HandlerFunc {
+func (router Router) UpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Println(err.Error())
@@ -57,6 +56,17 @@ func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Coun
 			log.Println(err.Error())
 			return
 		}
+		if router.h != nil {
+			ok, err := router.h.Check(*m)
+			if err != nil {
+				http.Error(w, "could not check metric integrity", http.StatusInternalServerError)
+				return
+			}
+			if !ok {
+				http.Error(w, "metric integrity check failed (wrong hash?)", http.StatusBadRequest)
+				return
+			}
+		}
 		switch m.MType {
 		// TODO: simplify code (get rid of code dup)
 		case internal.GAUGE:
@@ -64,7 +74,7 @@ func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Coun
 				http.Error(w, "gauge value is null", http.StatusBadRequest)
 				return
 			}
-			g, err := gaugeRepo.Save(m.ID, *m.Value)
+			g, err := router.gr.Save(m.ID, *m.Value)
 			if err != nil {
 				http.Error(w, "could not save gauge value", http.StatusInternalServerError)
 			}
@@ -74,7 +84,7 @@ func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Coun
 				http.Error(w, "counter value is null", http.StatusBadRequest)
 				return
 			}
-			c, err := counterRepo.AddAndSave(m.ID, *m.Delta)
+			c, err := router.cr.AddAndSave(m.ID, *m.Delta)
 			if err != nil {
 				http.Error(w, "could not update counter value", http.StatusInternalServerError)
 			}
@@ -87,13 +97,13 @@ func UpdatePostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Coun
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(b)
-		if postUpdateFn != nil {
-			postUpdateFn()
+		if router.postUpdate != nil {
+			router.postUpdate()
 		}
 	}
 }
 
-func GetPostHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository) http.HandlerFunc {
+func (router Router) GetPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Println(err.Error())
@@ -106,7 +116,7 @@ func GetPostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Counter
 		}
 		switch m.MType {
 		case internal.GAUGE:
-			g, err := gaugeRepo.GetByName(m.ID)
+			g, err := router.gr.GetByName(m.ID)
 			if err != nil {
 				http.Error(w, "could not retrieve gauge value", http.StatusInternalServerError)
 				return
@@ -117,7 +127,7 @@ func GetPostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Counter
 			}
 			m.Value = &g.Value
 		case internal.COUNTER:
-			c, err := counterRepo.GetByName(m.ID)
+			c, err := router.cr.GetByName(m.ID)
 			if err != nil {
 				http.Error(w, "could not retrieve counter value", http.StatusInternalServerError)
 				return
@@ -127,6 +137,13 @@ func GetPostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Counter
 				return
 			}
 			m.Delta = &c.Value
+		}
+		if router.h != nil {
+			m.Hash, err = router.h.Hash(*m)
+			if err != nil {
+				http.Error(w, "could not calculate hash for integrity", http.StatusInternalServerError)
+				return
+			}
 		}
 		b, err := json.Marshal(m)
 		if err != nil {
@@ -138,10 +155,10 @@ func GetPostHandler(gaugeRepo models.GaugeRepository, counterRepo models.Counter
 	}
 }
 
-func CounterGetHandler(repo models.CounterRepository) http.HandlerFunc {
+func (router Router) CounterGetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		counter, err := repo.GetByName(name)
+		counter, err := router.cr.GetByName(name)
 		if err != nil {
 			http.Error(w, "error retrieving value", http.StatusInternalServerError)
 			return
@@ -154,7 +171,7 @@ func CounterGetHandler(repo models.CounterRepository) http.HandlerFunc {
 	}
 }
 
-func CounterPostHandler(repo models.CounterRepository, postUpdateFn func()) http.HandlerFunc {
+func (router Router) CounterPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		svalue := chi.URLParam(r, "svalue")
@@ -164,22 +181,22 @@ func CounterPostHandler(repo models.CounterRepository, postUpdateFn func()) http
 			http.Error(w, "VALUE type must be int64", http.StatusBadRequest)
 			return
 		}
-		_, err = repo.AddAndSave(name, value)
+		_, err = router.cr.AddAndSave(name, value)
 		if err != nil {
 			log.Println("Could not add and save counter value", name, value)
 			http.Error(w, "Could not add and save counter value", http.StatusInternalServerError)
 			return
 		}
-		if postUpdateFn != nil {
-			postUpdateFn()
+		if router.postUpdate != nil {
+			router.postUpdate()
 		}
 	}
 }
 
-func GaugeGetHandler(repo models.GaugeRepository) http.HandlerFunc {
+func (router Router) GaugeGetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		gauge, err := repo.GetByName(name)
+		gauge, err := router.gr.GetByName(name)
 		if err != nil {
 			http.Error(w, "error retrieving value", http.StatusInternalServerError)
 			return
@@ -192,7 +209,7 @@ func GaugeGetHandler(repo models.GaugeRepository) http.HandlerFunc {
 	}
 }
 
-func GaugePostHandler(repo models.GaugeRepository, postUpdateFn func()) http.HandlerFunc {
+func (router Router) GaugePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		svalue := chi.URLParam(r, "svalue")
@@ -202,19 +219,19 @@ func GaugePostHandler(repo models.GaugeRepository, postUpdateFn func()) http.Han
 			http.Error(w, "VALUE type must be float64", http.StatusBadRequest)
 			return
 		}
-		_, err = repo.Save(name, value)
+		_, err = router.gr.Save(name, value)
 		if err != nil {
 			log.Println("Could not save gauge value", name, value)
 			http.Error(w, "Could not save gauge value", http.StatusInternalServerError)
 			return
 		}
-		if postUpdateFn != nil {
-			postUpdateFn()
+		if router.postUpdate != nil {
+			router.postUpdate()
 		}
 	}
 }
 
-func PageHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository) http.HandlerFunc {
+func (router Router) PageHandler() http.HandlerFunc {
 	const tpl = `
 <!DOCTYPE html>
 <html>
@@ -262,7 +279,7 @@ func PageHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRep
 		}{}
 
 		// TODO if metrics are being updated during page generation
-		gs, err := gaugeRepo.GetAll()
+		gs, err := router.gr.GetAll()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -270,7 +287,7 @@ func PageHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRep
 		for _, g := range gs {
 			data.Items = append(data.Items, Item{g.Name, internal.GAUGE, fmt.Sprint(g.Value)})
 		}
-		vs, err := counterRepo.GetAll()
+		vs, err := router.cr.GetAll()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -291,4 +308,9 @@ func PageHandler(gaugeRepo models.GaugeRepository, counterRepo models.CounterRep
 			return
 		}
 	}
+}
+
+func handleUnknown(w http.ResponseWriter, r *http.Request) {
+	mtype := chi.URLParam(r, "*")
+	http.Error(w, "unknown metric type in "+mtype, http.StatusNotImplemented)
 }

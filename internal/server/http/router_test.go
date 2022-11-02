@@ -1,4 +1,4 @@
-package server
+package http
 
 import (
 	"bytes"
@@ -15,8 +15,8 @@ import (
 )
 
 func TestRouter(t *testing.T) {
-	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository(), nil)
-	ts := httptest.NewServer(r)
+	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository(), nil, nil)
+	ts := httptest.NewServer(r.R)
 	defer ts.Close()
 
 	t.Run("unknown metric type", func(t *testing.T) {

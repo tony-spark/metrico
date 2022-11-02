@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/dto"
 	"log"
 	"net/http"
 	"time"
@@ -16,6 +17,7 @@ const (
 
 type HTTPTransport struct {
 	client *resty.Client
+	hasher dto.Hasher
 }
 
 func NewHTTPTransport(baseURL string) *HTTPTransport {
@@ -23,7 +25,15 @@ func NewHTTPTransport(baseURL string) *HTTPTransport {
 	client.SetBaseURL(baseURL)
 	// TODO think about better timeout value
 	client.SetTimeout(1 * time.Second)
-	return &HTTPTransport{client}
+	return &HTTPTransport{
+		client: client,
+	}
+}
+
+func NewHTTPTransportHashed(baseURL string, hasher dto.Hasher) *HTTPTransport {
+	t := NewHTTPTransport(baseURL)
+	t.hasher = hasher
+	return t
 }
 
 func (h HTTPTransport) SendMetric(metric metrics.Metric) error {
@@ -47,9 +57,25 @@ func (h HTTPTransport) send(metric metrics.Metric) error {
 	return nil
 }
 
+func (h HTTPTransport) createDTO(metric metrics.Metric) (*dto.Metric, error) {
+	d := metric.ToDTO()
+	if h.hasher != nil {
+		var err error
+		d.Hash, err = h.hasher.Hash(*d)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return d, nil
+}
+
 func (h HTTPTransport) sendJSON(metric metrics.Metric) error {
+	d, err := h.createDTO(metric)
+	if err != nil {
+		return err
+	}
 	req := h.client.R().
-		SetBody(metric.ToDTO())
+		SetBody(d)
 	resp, err := req.Post(endpointSendJSON)
 	if err != nil {
 		return err
