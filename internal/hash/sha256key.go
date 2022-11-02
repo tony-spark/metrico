@@ -2,6 +2,7 @@ package hash
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -49,8 +50,7 @@ func hashBin(m dto.Metric, key string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("coulnd not calculate hash for unknown metric type: %s", m.MType)
 	}
-	h := sha256.New()
+	h := hmac.New(sha256.New, []byte(key))
 	h.Write([]byte(repr))
-	h.Write([]byte(key))
 	return h.Sum(nil), nil
 }
