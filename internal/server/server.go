@@ -20,8 +20,11 @@ func Run(ctx context.Context, cfg config.Config) error {
 	var cr models.CounterRepository
 	var dbr models.DBRepository
 	var postUpdateFn func() = nil
+	var err error
 	if len(cfg.DSN) > 0 {
-		dbr, err := storage.NewPsqlRepository(cfg.DSN)
+		dbr, err = storage.NewPsqlRepository(cfg.DSN)
+		gr = storage.NewSingleValueGaugeRepository()
+		cr = storage.NewSingleValueCounterRepository()
 		if err != nil {
 			return err
 		}
@@ -30,7 +33,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 		var store models.RepositoryPersistence
 		gr = storage.NewSingleValueGaugeRepository()
 		cr = storage.NewSingleValueCounterRepository()
-		store, err := storage.NewJSONFilePersistence(cfg.StoreFilename)
+		store, err = storage.NewJSONFilePersistence(cfg.StoreFilename)
 		defer func() {
 			store.Save(gr, cr)
 			store.Close()
