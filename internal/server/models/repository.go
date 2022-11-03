@@ -19,6 +19,7 @@ type CounterRepository interface {
 }
 
 type DBRepository interface {
+	io.Closer
 	Check(ctx context.Context) (bool, error)
 }
 

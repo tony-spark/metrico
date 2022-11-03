@@ -30,3 +30,7 @@ func (d DatabaseRepository) Check(ctx context.Context) (bool, error) {
 	}
 	return true, nil
 }
+
+func (d DatabaseRepository) Close() error {
+	return d.Close()
+}
