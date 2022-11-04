@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"io"
@@ -17,7 +18,7 @@ type data struct {
 	Counters []*models.CounterValue
 }
 
-func (fp JSONFilePersistence) Load(gr models.GaugeRepository, cr models.CounterRepository) error {
+func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {
 	log.Printf("Loading from %v", fp.file.Name())
 	_, err := fp.file.Seek(0, 0)
 	if err != nil {
@@ -36,24 +37,24 @@ func (fp JSONFilePersistence) Load(gr models.GaugeRepository, cr models.CounterR
 		return err
 	}
 	for _, g := range d.Gauges {
-		gr.Save(g.Name, g.Value)
+		gr.Save(ctx, g.Name, g.Value)
 		log.Printf("Loaded gauge %v = %v", g.Name, g.Value)
 	}
 	for _, c := range d.Counters {
-		cr.Save(c.Name, c.Value)
+		cr.Save(ctx, c.Name, c.Value)
 		log.Printf("Loaded counter %v = %v", c.Name, c.Value)
 	}
 	return nil
 }
 
-func (fp JSONFilePersistence) Save(gr models.GaugeRepository, cr models.CounterRepository) error {
+func (fp JSONFilePersistence) Save(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {
 	// TODO make save operation atomic
 	log.Printf("Saving metrics to %v", fp.file.Name())
-	gauges, err := gr.GetAll()
+	gauges, err := gr.GetAll(ctx)
 	if err != nil {
 		return err
 	}
-	counters, err := cr.GetAll()
+	counters, err := cr.GetAll(ctx)
 	if err != nil {
 		return err
 	}

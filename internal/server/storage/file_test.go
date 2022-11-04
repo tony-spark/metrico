@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 )
@@ -12,20 +14,20 @@ func TestJSONFilePersistence(t *testing.T) {
 		if err != nil {
 			defer tempf.Close()
 		}
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		jfp, err := NewJSONFilePersistence(tempf.Name())
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		grBefore := NewSingleValueGaugeRepository()
 		crBefore := NewSingleValueCounterRepository()
-		_, err = grBefore.Save("TestGauge", 1.0)
+		_, err = grBefore.Save(context.Background(), "TestGauge", 1.0)
 		assert.Nil(t, err)
-		_, err = crBefore.Save("TestCounter", 13)
+		_, err = crBefore.Save(context.Background(), "TestCounter", 13)
 		assert.Nil(t, err)
-		err = jfp.Save(grBefore, crBefore)
+		err = jfp.Save(context.Background(), grBefore, crBefore)
 		assert.Nil(t, err)
 		grAfter := NewSingleValueGaugeRepository()
 		crAfter := NewSingleValueCounterRepository()
-		err = jfp.Load(grAfter, crAfter)
+		err = jfp.Load(context.Background(), grAfter, crAfter)
 		assert.Nil(t, err)
 		assert.Equal(t, grBefore, grAfter)
 		assert.Equal(t, crBefore, crAfter)

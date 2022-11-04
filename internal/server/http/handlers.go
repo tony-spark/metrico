@@ -75,9 +75,10 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 				http.Error(w, "gauge value is null", http.StatusBadRequest)
 				return
 			}
-			g, err := router.gr.Save(m.ID, *m.Value)
+			g, err := router.gr.Save(context.Background(), m.ID, *m.Value)
 			if err != nil {
 				http.Error(w, "could not save gauge value", http.StatusInternalServerError)
+				return
 			}
 			m.Value = &g.Value
 		case internal.COUNTER:
@@ -85,9 +86,10 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 				http.Error(w, "counter value is null", http.StatusBadRequest)
 				return
 			}
-			c, err := router.cr.AddAndSave(m.ID, *m.Delta)
+			c, err := router.cr.AddAndSave(context.Background(), m.ID, *m.Delta)
 			if err != nil {
 				http.Error(w, "could not update counter value", http.StatusInternalServerError)
+				return
 			}
 			m.Delta = &c.Value
 		}
@@ -117,7 +119,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 		}
 		switch m.MType {
 		case internal.GAUGE:
-			g, err := router.gr.GetByName(m.ID)
+			g, err := router.gr.GetByName(context.Background(), m.ID)
 			if err != nil {
 				http.Error(w, "could not retrieve gauge value", http.StatusInternalServerError)
 				return
@@ -128,7 +130,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			}
 			m.Value = &g.Value
 		case internal.COUNTER:
-			c, err := router.cr.GetByName(m.ID)
+			c, err := router.cr.GetByName(context.Background(), m.ID)
 			if err != nil {
 				http.Error(w, "could not retrieve counter value", http.StatusInternalServerError)
 				return
@@ -159,7 +161,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 func (router Router) CounterGetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		counter, err := router.cr.GetByName(name)
+		counter, err := router.cr.GetByName(context.Background(), name)
 		if err != nil {
 			http.Error(w, "error retrieving value", http.StatusInternalServerError)
 			return
@@ -182,7 +184,7 @@ func (router Router) CounterPostHandler() http.HandlerFunc {
 			http.Error(w, "VALUE type must be int64", http.StatusBadRequest)
 			return
 		}
-		_, err = router.cr.AddAndSave(name, value)
+		_, err = router.cr.AddAndSave(context.Background(), name, value)
 		if err != nil {
 			log.Println("Could not add and save counter value", name, value)
 			http.Error(w, "Could not add and save counter value", http.StatusInternalServerError)
@@ -197,7 +199,7 @@ func (router Router) CounterPostHandler() http.HandlerFunc {
 func (router Router) GaugeGetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		gauge, err := router.gr.GetByName(name)
+		gauge, err := router.gr.GetByName(context.Background(), name)
 		if err != nil {
 			http.Error(w, "error retrieving value", http.StatusInternalServerError)
 			return
@@ -220,7 +222,7 @@ func (router Router) GaugePostHandler() http.HandlerFunc {
 			http.Error(w, "VALUE type must be float64", http.StatusBadRequest)
 			return
 		}
-		_, err = router.gr.Save(name, value)
+		_, err = router.gr.Save(context.Background(), name, value)
 		if err != nil {
 			log.Println("Could not save gauge value", name, value)
 			http.Error(w, "Could not save gauge value", http.StatusInternalServerError)
@@ -280,7 +282,7 @@ func (router Router) PageHandler() http.HandlerFunc {
 		}{}
 
 		// TODO if metrics are being updated during page generation
-		gs, err := router.gr.GetAll()
+		gs, err := router.gr.GetAll(context.Background())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -288,7 +290,7 @@ func (router Router) PageHandler() http.HandlerFunc {
 		for _, g := range gs {
 			data.Items = append(data.Items, Item{g.Name, internal.GAUGE, fmt.Sprint(g.Value)})
 		}
-		vs, err := router.cr.GetAll()
+		vs, err := router.cr.GetAll(context.Background())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

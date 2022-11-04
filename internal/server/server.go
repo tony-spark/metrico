@@ -18,31 +18,31 @@ import (
 func Run(ctx context.Context, cfg config.Config) error {
 	var gr models.GaugeRepository
 	var cr models.CounterRepository
-	var dbr models.DBRepository
+	var dbm models.DBManager
 	var postUpdateFn func() = nil
 	var err error
 	if len(cfg.DSN) > 0 {
-		dbr, err = storage.NewPsqlRepository(cfg.DSN)
-		gr = storage.NewSingleValueGaugeRepository()
-		cr = storage.NewSingleValueCounterRepository()
+		dbm, err = storage.NewPgManager(cfg.DSN)
 		if err != nil {
 			return err
 		}
-		defer dbr.Close()
+		gr = dbm.GaugeRepository()
+		cr = dbm.CounterRepository()
+		defer dbm.Close()
 	} else {
 		var store models.RepositoryPersistence
 		gr = storage.NewSingleValueGaugeRepository()
 		cr = storage.NewSingleValueCounterRepository()
 		store, err = storage.NewJSONFilePersistence(cfg.StoreFilename)
-		defer func() {
-			store.Save(gr, cr)
-			store.Close()
-		}()
 		if err != nil {
 			return err
 		}
+		defer func() {
+			store.Save(ctx, gr, cr)
+			store.Close()
+		}()
 		if cfg.Restore {
-			err = store.Load(gr, cr)
+			err = store.Load(ctx, gr, cr)
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 				for {
 					select {
 					case <-saveTicker.C:
-						store.Save(gr, cr)
+						store.Save(ctx, gr, cr)
 					case <-ctx.Done():
 						return
 					}
@@ -63,7 +63,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 			}()
 		} else {
 			postUpdateFn = func() {
-				store.Save(gr, cr)
+				store.Save(ctx, gr, cr)
 			}
 		}
 	}
@@ -74,5 +74,5 @@ func Run(ctx context.Context, cfg config.Config) error {
 	}
 
 	return http.ListenAndServe(cfg.Address,
-		router.NewRouter(gr, cr, postUpdateFn, h, dbr).R)
+		router.NewRouter(gr, cr, postUpdateFn, h, dbm).R)
 }

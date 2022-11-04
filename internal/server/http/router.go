@@ -13,10 +13,10 @@ type Router struct {
 	cr         models.CounterRepository
 	postUpdate func()
 	h          dto.Hasher
-	dbr        models.DBRepository
+	dbr        models.DBManager
 }
 
-func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func(), h dto.Hasher, dbr models.DBRepository) *Router {
+func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func(), h dto.Hasher, dbm models.DBManager) *Router {
 	r := chi.NewRouter()
 
 	router := &Router{
@@ -25,7 +25,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 		cr:         counterRepo,
 		postUpdate: postUpdateFn,
 		h:          h,
-		dbr:        dbr,
+		dbr:        dbm,
 	}
 
 	r.Use(middleware.RequestID)
