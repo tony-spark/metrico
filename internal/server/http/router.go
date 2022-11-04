@@ -56,6 +56,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 		r.HandleFunc("/*", handleUnknown)
 	})
 	r.Get("/ping", router.PingHandler())
+	r.Post("/updates", router.BulkUpdatePostHandler())
 
 	return router
 }

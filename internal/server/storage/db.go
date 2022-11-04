@@ -114,6 +114,10 @@ func (gdb GaugeDB) Save(ctx context.Context, name string, value float64) (*model
 	return &g, nil
 }
 
+func (gdb GaugeDB) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
+	return nil
+}
+
 func (gdb GaugeDB) GetAll(ctx context.Context) ([]*models.GaugeValue, error) {
 	gs := make([]*models.GaugeValue, 0)
 
@@ -175,6 +179,10 @@ func (cdb CounterDB) AddAndSave(ctx context.Context, name string, value int64) (
 	}
 
 	return c, nil
+}
+
+func (cdb CounterDB) AddAndSaveAll(ctx context.Context, cs []models.CounterValue) error {
+	return nil
 }
 
 func (cdb CounterDB) Save(ctx context.Context, name string, value int64) (*models.CounterValue, error) {

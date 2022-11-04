@@ -44,6 +44,13 @@ func (r SingleValueGaugeRepository) Save(ctx context.Context, name string, value
 	return gauge, nil
 }
 
+func (r SingleValueGaugeRepository) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
+	for _, g := range gs {
+		r.Save(ctx, g.Name, g.Value)
+	}
+	return nil
+}
+
 func (r SingleValueCounterRepository) GetByName(ctx context.Context, name string) (*models.CounterValue, error) {
 	return r.counters[name], nil
 }
@@ -63,6 +70,13 @@ func (r SingleValueCounterRepository) AddAndSave(ctx context.Context, name strin
 	}
 	counter.Value += value
 	return counter, nil
+}
+
+func (r SingleValueCounterRepository) AddAndSaveAll(ctx context.Context, cs []models.CounterValue) error {
+	for _, c := range cs {
+		r.AddAndSave(ctx, c.Name, c.Value)
+	}
+	return nil
 }
 
 func (r SingleValueCounterRepository) Save(ctx context.Context, name string, value int64) (*models.CounterValue, error) {

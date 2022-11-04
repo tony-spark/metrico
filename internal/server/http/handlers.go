@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/server/models"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -26,7 +27,7 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
+func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -46,13 +47,35 @@ func readMetrics(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	return &m, nil
 }
 
+func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Could not read body", http.StatusBadRequest)
+		return nil, err
+	}
+	var ms []dto.Metric
+	err = json.Unmarshal(body, &ms)
+	if err != nil {
+		http.Error(w, "Could not parse json", http.StatusBadRequest)
+		return nil, err
+	}
+	for _, m := range ms {
+		if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+			http.Error(w, "Unknown metric type", http.StatusBadRequest)
+			return nil, fmt.Errorf("unknown metric type: %v", m.MType)
+		}
+	}
+	return ms, nil
+}
+
 func (router Router) UpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Println(err.Error())
 			return
 		}
-		m, err := readMetrics(w, r)
+		m, err := readMetric(w, r)
 		if err != nil {
 			log.Println(err.Error())
 			return
@@ -106,13 +129,76 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 	}
 }
 
+func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := checkContentType(w, r); err != nil {
+			log.Println(err.Error())
+			return
+		}
+		ms, err := readMetrics(w, r)
+		if err != nil {
+			return
+		}
+		if router.h != nil {
+			for _, m := range ms {
+				ok, err := router.h.Check(m)
+				if err != nil {
+					http.Error(w, "could not check metric integrity", http.StatusInternalServerError)
+					return
+				}
+				if !ok {
+					http.Error(w, "metric integrity check failed (wrong hash?)", http.StatusBadRequest)
+					return
+				}
+			}
+		}
+		gs := make([]models.GaugeValue, 0)
+		cs := make([]models.CounterValue, 0)
+		for _, m := range ms {
+			switch m.MType {
+			case internal.GAUGE:
+				if m.Value == nil {
+					http.Error(w, "gauge value is null", http.StatusBadRequest)
+					return
+				}
+				gs = append(gs, models.GaugeValue{
+					Name:  m.ID,
+					Value: *m.Value,
+				})
+			case internal.COUNTER:
+				if m.Delta == nil {
+					http.Error(w, "counter value is null", http.StatusBadRequest)
+					return
+				}
+				cs = append(cs, models.CounterValue{
+					Name:  m.ID,
+					Value: *m.Delta,
+				})
+			}
+		}
+		// TODO single transaction?
+		if len(gs) > 0 {
+			err := router.gr.SaveAll(context.Background(), gs)
+			if err != nil {
+				return
+			}
+		}
+		if len(cs) > 0 {
+			err := router.cr.AddAndSaveAll(context.Background(), cs)
+			if err != nil {
+				return
+			}
+		}
+	}
+}
+
 func (router Router) GetPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Println(err.Error())
 			return
 		}
-		m, err := readMetrics(w, r)
+		m, err := readMetric(w, r)
 		if err != nil {
 			log.Println(err.Error())
 			return
