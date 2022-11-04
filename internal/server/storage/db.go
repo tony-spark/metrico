@@ -79,11 +79,12 @@ func (pgm PgDatabaseManager) Close() error {
 
 func (gdb GaugeDB) GetByName(ctx context.Context, name string) (*models.GaugeValue, error) {
 	row := gdb.db.QueryRowContext(ctx, "SELECT name, value FROM gauges WHERE name = $1", name)
-	if row == nil {
+	var g models.GaugeValue
+
+	err := row.Scan(&g.Name, &g.Value)
+	if err == sql.ErrNoRows {
 		return nil, nil
 	}
-	var g models.GaugeValue
-	err := row.Scan(&g.Name, &g.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -141,11 +142,12 @@ func (gdb GaugeDB) GetAll(ctx context.Context) ([]*models.GaugeValue, error) {
 
 func (cdb CounterDB) GetByName(ctx context.Context, name string) (*models.CounterValue, error) {
 	row := cdb.db.QueryRowContext(ctx, "SELECT name, value FROM counters WHERE name = $1", name)
-	if row == nil {
+	var g models.CounterValue
+
+	err := row.Scan(&g.Name, &g.Value)
+	if err == sql.ErrNoRows {
 		return nil, nil
 	}
-	var g models.CounterValue
-	err := row.Scan(&g.Name, &g.Value)
 	if err != nil {
 		return nil, err
 	}
