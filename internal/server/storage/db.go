@@ -115,7 +115,28 @@ func (gdb GaugeDB) Save(ctx context.Context, name string, value float64) (*model
 }
 
 func (gdb GaugeDB) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
-	return nil
+	tx, err := gdb.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO gauges(name, value) VALUES ($1, $2)
+				ON CONFLICT (name) DO UPDATE 
+				SET value = excluded.value`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, g := range gs {
+		if _, err := stmt.ExecContext(ctx, g.Name, g.Value); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (gdb GaugeDB) GetAll(ctx context.Context) ([]*models.GaugeValue, error) {
@@ -182,7 +203,28 @@ func (cdb CounterDB) AddAndSave(ctx context.Context, name string, value int64) (
 }
 
 func (cdb CounterDB) AddAndSaveAll(ctx context.Context, cs []models.CounterValue) error {
-	return nil
+	tx, err := cdb.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO counters(name, value) VALUES ($1, $2)
+				ON CONFLICT (name) DO UPDATE 
+				SET value = counters.value + excluded.value`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, c := range cs {
+		if _, err := stmt.ExecContext(ctx, c.Name, c.Value); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (cdb CounterDB) Save(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
