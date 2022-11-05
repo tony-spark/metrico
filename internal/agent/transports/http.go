@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	endpointSend     = "/update/{type}/{name}/{value}"
-	endpointSendJSON = "/update/"
+	endpointSend          = "/update/{type}/{name}/{value}"
+	endpointSendJSON      = "/update/"
+	endpointSendJSONBatch = "/updates/"
 )
 
 type HTTPTransport struct {
@@ -38,6 +39,10 @@ func NewHTTPTransportHashed(baseURL string, hasher dto.Hasher) *HTTPTransport {
 
 func (h HTTPTransport) SendMetric(metric metrics.Metric) error {
 	return h.sendJSON(metric)
+}
+
+func (h HTTPTransport) SendMetrics(mx []metrics.Metric) error {
+	return h.sendJSONBatch(mx)
 }
 
 func (h HTTPTransport) send(metric metrics.Metric) error {
@@ -84,5 +89,29 @@ func (h HTTPTransport) sendJSON(metric metrics.Metric) error {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
 	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+	return nil
+}
+
+func (h HTTPTransport) sendJSONBatch(mx []metrics.Metric) error {
+	var dtos []dto.Metric
+	for _, m := range mx {
+		mdto, err := h.createDTO(m)
+		if err != nil {
+			return err
+		}
+		dtos = append(dtos, *mdto)
+	}
+	req := h.client.R().
+		SetBody(dtos)
+	resp, err := req.Post(endpointSendJSONBatch)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("send error: metrics not accepted %v response code: %v", req.URL, resp.StatusCode())
+	}
+	for _, metric := range mx {
+		log.Printf("sent in batch %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+	}
 	return nil
 }

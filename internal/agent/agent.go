@@ -31,18 +31,16 @@ func (a MetricsAgent) poll() {
 func (a MetricsAgent) report() {
 	log.Println("sending report...")
 	for _, collector := range a.collectors {
-		for _, metric := range collector.Metrics() {
-			err := a.transport.SendMetric(metric)
-			if err != nil {
-				log.Println(err.Error())
-				switch err.(type) {
-				// TODO: move this logic to transport layer?
-				case net.Error:
-					log.Println("network error, interrupting current report...")
-					return
-				}
-				continue
+		err := a.transport.SendMetrics(collector.Metrics())
+		if err != nil {
+			log.Println(err.Error())
+			switch err.(type) {
+			// TODO: move this logic to transport layer?
+			case net.Error:
+				log.Println("network error, interrupting current report...")
+				return
 			}
+			continue
 		}
 	}
 }
