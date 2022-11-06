@@ -4,9 +4,10 @@ import (
 	"context"
 	"flag"
 	"github.com/caarlos0/env/v6"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/server"
 	"github.com/tony-spark/metrico/internal/server/config"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,6 +15,8 @@ import (
 )
 
 func main() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+
 	cfg := config.Config{}
 
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address to listen")
@@ -26,18 +29,18 @@ func main() {
 
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal("Could not parse env config")
+		log.Fatal().Msg("Could not parse env config")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	log.Printf("Starting metrics server with config %+v\n", cfg)
-	go log.Fatal(server.Run(ctx, cfg))
+	log.Info().Msgf("Starting metrics server with config %+v", cfg)
+	go log.Fatal().Msg(server.Run(ctx, cfg).Error())
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
 
 	<-terminateSignal
 	cancel()
-	log.Println("Server interrupted")
+	log.Info().Msg("Server interrupted")
 }

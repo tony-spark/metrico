@@ -3,9 +3,9 @@ package transports
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/dto"
-	"log"
 	"net/http"
 	"time"
 )
@@ -58,7 +58,7 @@ func (h HTTPTransport) send(metric metrics.Metric) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
-	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+	log.Info().Msgf("sent %v (%v) = %v", metric.Name(), metric.Type(), metric.String())
 	return nil
 }
 
@@ -88,7 +88,7 @@ func (h HTTPTransport) sendJSON(metric metrics.Metric) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
-	log.Printf("sent %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+	log.Info().Msgf("sent %v (%v) = %v", metric.Name(), metric.Type(), metric.String())
 	return nil
 }
 
@@ -111,7 +111,7 @@ func (h HTTPTransport) sendJSONBatch(mx []metrics.Metric) error {
 		return fmt.Errorf("send error: metrics not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
 	for _, metric := range mx {
-		log.Printf("sent in batch %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+		log.Info().Msgf("sent in batch %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
 	}
 	return nil
 }

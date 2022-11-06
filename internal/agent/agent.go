@@ -2,9 +2,9 @@ package agent
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
-	"log"
 	"net"
 	"time"
 )
@@ -17,11 +17,11 @@ type MetricsAgent struct {
 }
 
 func (a MetricsAgent) poll() {
-	log.Println("poll")
+	log.Trace().Msg("poll")
 	for _, collector := range a.collectors {
 		collector.Update()
 		for _, metric := range collector.Metrics() {
-			log.Printf("got %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+			log.Debug().Msgf("got %v (%v) = %v", metric.Name(), metric.Type(), metric.String())
 		}
 	}
 }
@@ -29,18 +29,17 @@ func (a MetricsAgent) poll() {
 // TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
 // TODO: what if report is running concurrently with poll?
 func (a MetricsAgent) report() {
-	log.Println("sending report...")
+	log.Info().Msg("sending report")
 	for _, collector := range a.collectors {
 		err := a.transport.SendMetrics(collector.Metrics())
 		if err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			switch err.(type) {
 			// TODO: move this logic to transport layer?
 			case net.Error:
-				log.Println("network error, interrupting current report...")
+				log.Info().Msg("network error, interrupting current report...")
 				return
 			}
-			continue
 		}
 	}
 }
@@ -54,7 +53,7 @@ func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, t
 }
 
 // Run starts collecting metrics and sending it via transport
-func (a MetricsAgent) Run(c context.Context) {
+func (a MetricsAgent) Run(ctx context.Context) {
 	a.collectors = append(a.collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
 
 	pollTicker := time.NewTicker(a.pollInterval)
@@ -70,9 +69,9 @@ func (a MetricsAgent) Run(c context.Context) {
 			go a.poll()
 		case <-reportTicker.C:
 			go a.report()
-		case <-c.Done():
+		case <-ctx.Done():
 			// TODO: interrupt poll() and report()
-			log.Println("Agent stopped via context")
+			log.Info().Msg("Agent stopped via context")
 			return
 		}
 	}

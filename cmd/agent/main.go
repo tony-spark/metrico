@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 	"github.com/caarlos0/env/v6"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
 	"github.com/tony-spark/metrico/internal/agent/transports"
 	"github.com/tony-spark/metrico/internal/hash"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -17,6 +18,8 @@ import (
 )
 
 func main() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+
 	cfg := config.Config{}
 
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address to send metrics to")
@@ -27,10 +30,10 @@ func main() {
 
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal("Could not parse config")
+		log.Fatal().Msg("Could not parse config")
 	}
 
-	log.Printf("Starting metrics agent with config %+v \n", cfg)
+	log.Info().Msgf("Starting metrics agent with config %+v", cfg)
 
 	baseURL := "http://" + strings.Trim(cfg.Address, "\"")
 
@@ -51,5 +54,5 @@ func main() {
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
 
 	<-terminateSignal
-	log.Println("Application interrupted via system signal")
+	log.Info().Msg("Application interrupted via system signal")
 }

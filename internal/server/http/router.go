@@ -3,6 +3,8 @@ package http
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/server/models"
 )
@@ -30,7 +32,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(httplog.RequestLogger(log.Logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 

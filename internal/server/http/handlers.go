@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"sort"
@@ -72,12 +72,12 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 func (router Router) UpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			return
 		}
 		m, err := readMetric(w, r)
 		if err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			return
 		}
 		if router.h != nil {
@@ -132,7 +132,7 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			return
 		}
 		ms, err := readMetrics(w, r)
@@ -195,12 +195,12 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 func (router Router) GetPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			return
 		}
 		m, err := readMetric(w, r)
 		if err != nil {
-			log.Println(err.Error())
+			log.Error().Msg(err.Error())
 			return
 		}
 		switch m.MType {
@@ -272,7 +272,7 @@ func (router Router) CounterPostHandler() http.HandlerFunc {
 		}
 		_, err = router.cr.AddAndSave(context.Background(), name, value)
 		if err != nil {
-			log.Println("Could not add and save counter value", name, value)
+			log.Error().Msgf("Could not add and save counter value %s = %v", name, value)
 			http.Error(w, "Could not add and save counter value", http.StatusInternalServerError)
 			return
 		}
@@ -310,7 +310,7 @@ func (router Router) GaugePostHandler() http.HandlerFunc {
 		}
 		_, err = router.gr.Save(context.Background(), name, value)
 		if err != nil {
-			log.Println("Could not save gauge value", name, value)
+			log.Error().Msgf("Could not save gauge value %s = %v", name, value)
 			http.Error(w, "Could not save gauge value", http.StatusInternalServerError)
 			return
 		}
@@ -353,7 +353,7 @@ func (router Router) PageHandler() http.HandlerFunc {
 `
 	t, err := template.New("webpage").Parse(tpl)
 	if err != nil {
-		log.Fatalln("Could not parse template", err)
+		log.Fatal().Msgf("Could not parse template %v", err)
 	}
 
 	type Item struct {
@@ -367,7 +367,7 @@ func (router Router) PageHandler() http.HandlerFunc {
 			Items []Item
 		}{}
 
-		// TODO if metrics are being updated during page generation
+		// TODO what if metrics are being updated during page generation
 		gs, err := router.gr.GetAll(context.Background())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

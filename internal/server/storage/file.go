@@ -3,9 +3,9 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"io"
-	"log"
 	"os"
 )
 
@@ -38,18 +38,18 @@ func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepositor
 	}
 	for _, g := range d.Gauges {
 		gr.Save(ctx, g.Name, g.Value)
-		log.Printf("Loaded gauge %v = %v", g.Name, g.Value)
+		log.Debug().Msgf("Loaded gauge %v = %v", g.Name, g.Value)
 	}
 	for _, c := range d.Counters {
 		cr.Save(ctx, c.Name, c.Value)
-		log.Printf("Loaded counter %v = %v", c.Name, c.Value)
+		log.Debug().Msgf("Loaded counter %v = %v", c.Name, c.Value)
 	}
 	return nil
 }
 
 func (fp JSONFilePersistence) Save(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {
 	// TODO make save operation atomic
-	log.Printf("Saving metrics to %v", fp.file.Name())
+	log.Debug().Msgf("Saving metrics to %v", fp.file.Name())
 	gauges, err := gr.GetAll(ctx)
 	if err != nil {
 		return err
