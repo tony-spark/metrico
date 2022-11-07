@@ -39,7 +39,7 @@ func main() {
 
 	var t transports.Transport
 	if len(cfg.Key) > 0 {
-		t = transports.NewHTTPTransportHashed(baseURL, hash.NewSha256Keyed(cfg.Key))
+		t = transports.NewHTTPTransportHashed(baseURL, hash.NewSha256Hmac(cfg.Key))
 	} else {
 		t = transports.NewHTTPTransport(baseURL)
 	}

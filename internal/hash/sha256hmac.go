@@ -10,17 +10,17 @@ import (
 	"github.com/tony-spark/metrico/internal/dto"
 )
 
-type Sha256Keyed struct {
+type Sha256Hmac struct {
 	key string
 }
 
-func NewSha256Keyed(key string) *Sha256Keyed {
-	return &Sha256Keyed{
+func NewSha256Hmac(key string) *Sha256Hmac {
+	return &Sha256Hmac{
 		key: key,
 	}
 }
 
-func (s Sha256Keyed) Hash(m dto.Metric) (string, error) {
+func (s Sha256Hmac) Hash(m dto.Metric) (string, error) {
 	hash, err := hashBin(m, s.key)
 	if err != nil {
 		return "", err
@@ -28,7 +28,7 @@ func (s Sha256Keyed) Hash(m dto.Metric) (string, error) {
 	return hex.EncodeToString(hash), nil
 }
 
-func (s Sha256Keyed) Check(m dto.Metric) (bool, error) {
+func (s Sha256Hmac) Check(m dto.Metric) (bool, error) {
 	calc, err := hashBin(m, s.key)
 	if err != nil {
 		return false, err

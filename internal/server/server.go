@@ -70,7 +70,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 
 	var h dto.Hasher
 	if len(cfg.Key) > 0 {
-		h = hash.NewSha256Keyed(cfg.Key)
+		h = hash.NewSha256Hmac(cfg.Key)
 	}
 
 	return http.ListenAndServe(cfg.Address,

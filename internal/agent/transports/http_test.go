@@ -96,7 +96,7 @@ func TestHTTPTransportConnectionProblem(t *testing.T) {
 }
 
 func TestHTTPTransportHashed(t *testing.T) {
-	h := hash.NewSha256Keyed("key")
+	h := hash.NewSha256Hmac("key")
 	name := "TestCounter"
 	value := int64(12345)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
