@@ -36,7 +36,7 @@ func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepos
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
 
-	r.Get("/", router.PageHandler())
+	r.Get("/", router.MetricsViewPageHandler())
 	r.Route("/update", func(r chi.Router) {
 		r.Route("/counter", func(r chi.Router) {
 			r.Post("/{name}/{svalue}", router.CounterPostHandler())

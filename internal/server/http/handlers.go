@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/assets"
 	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/server/models"
@@ -16,6 +17,16 @@ import (
 	"sort"
 	"strconv"
 )
+
+var metricsViewTemplate *template.Template
+
+func init() {
+	var err error
+	metricsViewTemplate, err = template.ParseFS(assets.EmbeddedAssets, "templates/metrics.html")
+	if err != nil {
+		log.Fatal().Msgf("Could not load template %v", err)
+	}
+}
 
 func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	ctype := r.Header.Get("Content-Type")
@@ -320,42 +331,7 @@ func (router Router) GaugePostHandler() http.HandlerFunc {
 	}
 }
 
-func (router Router) PageHandler() http.HandlerFunc {
-	const tpl = `
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="UTF-8">
-		<meta http-equiv="refresh" content="10">
-		<title>Metrics</title>
-	</head>
-	<body>
-		<table border="1">
-			<tr>
-				<th>Metric</th>
-				<th>Type</th>
-				<th>Value</th>
-			</tr>
-			{{range .Items}}
-			<tr>
-				<td>{{ .Name }}</td>
-				<td>{{ .Type }}</td>
-				<td>{{ .Value }}</td>
-			</tr>
-			{{else}}
-			<tr>
-				<td colspan="3"><strong>No metrics</strong></td>
-			</tr>
-			{{end}}
-		</table>
-	</body>
-</html>
-`
-	t, err := template.New("webpage").Parse(tpl)
-	if err != nil {
-		log.Fatal().Msgf("Could not parse template %v", err)
-	}
-
+func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 	type Item struct {
 		Name  string
 		Type  string
@@ -391,7 +367,7 @@ func (router Router) PageHandler() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
-		err = t.Execute(w, data)
+		err = metricsViewTemplate.Execute(w, data)
 		if err != nil {
 			http.Error(w, "Could not display metrics", http.StatusInternalServerError)
 			return
