@@ -7,9 +7,9 @@ import (
 	"github.com/tony-spark/metrico/internal/server/config"
 	router "github.com/tony-spark/metrico/internal/server/http"
 	"github.com/tony-spark/metrico/internal/server/models"
+	"github.com/tony-spark/metrico/internal/server/services"
 	"github.com/tony-spark/metrico/internal/server/storage"
 	"net/http"
-	"time"
 )
 
 // Run starts a server for collecting metrics using HTTP API
@@ -47,25 +47,9 @@ func Run(ctx context.Context, cfg config.Config) error {
 				return err
 			}
 		}
-		// TODO: simplify code (extract ticker logic to service?)
-		if cfg.StoreInterval > 0 {
-			saveTicker := time.NewTicker(cfg.StoreInterval)
-			defer saveTicker.Stop()
-			go func() {
-				for {
-					select {
-					case <-saveTicker.C:
-						store.Save(ctx, gr, cr)
-					case <-ctx.Done():
-						return
-					}
-				}
-			}()
-		} else {
-			postUpdateFn = func() {
-				store.Save(ctx, gr, cr)
-			}
-		}
+		pservice := services.NewPersistenceService(store, cfg.StoreInterval, gr, cr)
+		pservice.Run(ctx)
+		postUpdateFn = pservice.PostUpdate()
 	}
 
 	var h dto.Hasher
