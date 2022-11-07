@@ -102,13 +102,12 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 				return
 			}
 		}
+		if !m.HasValue() {
+			http.Error(w, "metric value is null", http.StatusBadRequest)
+			return
+		}
 		switch m.MType {
-		// TODO: simplify code (get rid of code dup)
 		case internal.GAUGE:
-			if m.Value == nil {
-				http.Error(w, "gauge value is null", http.StatusBadRequest)
-				return
-			}
 			g, err := router.gr.Save(context.Background(), m.ID, *m.Value)
 			if err != nil {
 				http.Error(w, "could not save gauge value", http.StatusInternalServerError)
@@ -116,10 +115,6 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			}
 			m.Value = &g.Value
 		case internal.COUNTER:
-			if m.Delta == nil {
-				http.Error(w, "counter value is null", http.StatusBadRequest)
-				return
-			}
 			c, err := router.cr.AddAndSave(context.Background(), m.ID, *m.Delta)
 			if err != nil {
 				http.Error(w, "could not update counter value", http.StatusInternalServerError)
@@ -166,39 +161,40 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 		gs := make([]models.GaugeValue, 0)
 		cs := make([]models.CounterValue, 0)
 		for _, m := range ms {
+			if !m.HasValue() {
+				http.Error(w, "metric value is null", http.StatusBadRequest)
+				return
+			}
 			switch m.MType {
 			case internal.GAUGE:
-				if m.Value == nil {
-					http.Error(w, "gauge value is null", http.StatusBadRequest)
-					return
-				}
 				gs = append(gs, models.GaugeValue{
 					Name:  m.ID,
 					Value: *m.Value,
 				})
 			case internal.COUNTER:
-				if m.Delta == nil {
-					http.Error(w, "counter value is null", http.StatusBadRequest)
-					return
-				}
 				cs = append(cs, models.CounterValue{
 					Name:  m.ID,
 					Value: *m.Delta,
 				})
 			}
 		}
-		// TODO single transaction?
+		// TODO do we need single transaction here?
 		if len(gs) > 0 {
 			err := router.gr.SaveAll(context.Background(), gs)
 			if err != nil {
+				http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 				return
 			}
 		}
 		if len(cs) > 0 {
 			err := router.cr.AddAndSaveAll(context.Background(), cs)
 			if err != nil {
+				http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 				return
 			}
+		}
+		if router.postUpdate != nil {
+			router.postUpdate()
 		}
 	}
 }

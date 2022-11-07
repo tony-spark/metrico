@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/tony-spark/metrico/internal"
+
 type Metric struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
@@ -11,4 +13,14 @@ type Metric struct {
 type Hasher interface {
 	Hash(m Metric) (string, error)
 	Check(m Metric) (bool, error)
+}
+
+func (m Metric) HasValue() bool {
+	switch m.MType {
+	case internal.GAUGE:
+		return m.Value != nil
+	case internal.COUNTER:
+		return m.Delta != nil
+	}
+	return false
 }
