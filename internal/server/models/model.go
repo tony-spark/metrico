@@ -23,7 +23,7 @@ type CounterValue struct {
 }
 
 func (g GaugeValue) ID() string {
-	return g.ID()
+	return g.Name
 }
 
 func (g GaugeValue) Type() string {
