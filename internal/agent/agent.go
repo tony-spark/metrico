@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
@@ -33,10 +34,9 @@ func (a MetricsAgent) report() {
 	for _, collector := range a.collectors {
 		err := a.transport.SendMetrics(collector.Metrics())
 		if err != nil {
-			log.Error().Msg(err.Error())
-			switch err.(type) {
-			// TODO: move this logic to transport layer?
-			case net.Error:
+			log.Error().Err(err).Msg("could not send metrics")
+			var ne net.Error
+			if errors.As(err, &ne) {
 				log.Info().Msg("network error, interrupting current report...")
 				return
 			}
