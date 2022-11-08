@@ -38,11 +38,11 @@ func (s MetricService) UpdateCounter(ctx context.Context, c models.CounterValue)
 }
 
 func (s MetricService) UpdateMetric(ctx context.Context, m models.Metric) (models.Metric, error) {
-	switch m.(type) {
+	switch m := m.(type) {
 	case models.GaugeValue:
-		return s.UpdateGauge(ctx, m.(models.GaugeValue))
+		return s.UpdateGauge(ctx, m)
 	case models.CounterValue:
-		return s.UpdateCounter(ctx, m.(models.CounterValue))
+		return s.UpdateCounter(ctx, m)
 	default:
 		return nil, fmt.Errorf("unknown metric type")
 	}
