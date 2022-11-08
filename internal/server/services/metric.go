@@ -43,8 +43,9 @@ func (s MetricService) UpdateMetric(ctx context.Context, m models.Metric) (model
 		return s.UpdateGauge(ctx, m.(models.GaugeValue))
 	case models.CounterValue:
 		return s.UpdateCounter(ctx, m.(models.CounterValue))
+	default:
+		return nil, fmt.Errorf("unknown metric type")
 	}
-	return nil, fmt.Errorf("unknown metric type")
 }
 
 func (s MetricService) UpdateAll(ctx context.Context, gs []models.GaugeValue, cs []models.CounterValue) error {
