@@ -20,7 +20,7 @@ type PollMetric struct {
 type MemoryMetricCollector struct {
 	metrics      []model.Metric
 	memStats     *runtime.MemStats
-	refreshCount uint
+	refreshCount int64
 }
 
 func NewMemoryMetricCollector() *MemoryMetricCollector {
