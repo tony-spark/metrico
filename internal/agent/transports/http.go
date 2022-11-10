@@ -111,7 +111,7 @@ func (h HTTPTransport) sendJSONBatch(mx []model.Metric) error {
 		return fmt.Errorf("send error: metrics not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
 	for _, metric := range mx {
-		log.Info().Msgf("sent in batch %v (%v) = %v\n", metric.ID(), metric.Type(), metric.String())
+		log.Info().Msgf("sent in batch %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
 	}
 	return nil
 }

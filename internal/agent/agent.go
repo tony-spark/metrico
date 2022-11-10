@@ -54,7 +54,11 @@ func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, t
 
 // Run starts collecting metrics and sending it via transport
 func (a MetricsAgent) Run(ctx context.Context) {
-	a.collectors = append(a.collectors, metrics.NewMemoryMetricCollector(), metrics.NewRandomMetricCollector())
+	a.collectors = append(a.collectors,
+		metrics.NewMemoryMetricCollector(),
+		metrics.NewRandomMetricCollector(),
+		metrics.NewPsUtilMetricsCollector(),
+	)
 
 	pollTicker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)

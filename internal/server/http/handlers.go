@@ -168,7 +168,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 		}
 		err = router.ms.UpdateAll(context.Background(), gs, cs)
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("could not save metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 		}
 	}
