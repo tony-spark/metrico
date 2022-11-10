@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/tony-spark/metrico/internal"
+import (
+	"github.com/tony-spark/metrico/internal/model"
+)
 
 type Metric struct {
 	ID    string   `json:"id"`              // имя метрики
@@ -17,10 +19,32 @@ type Hasher interface {
 
 func (m Metric) HasValue() bool {
 	switch m.MType {
-	case internal.GAUGE:
+	case model.GAUGE:
 		return m.Value != nil
-	case internal.COUNTER:
+	case model.COUNTER:
 		return m.Delta != nil
 	}
 	return false
+}
+
+func NewMetric(m model.Metric) *Metric {
+	mdto := &Metric{
+		ID:    m.ID(),
+		MType: m.Type(),
+		Delta: nil,
+		Value: nil,
+	}
+
+	switch m.Type() {
+	case model.GAUGE:
+		var v float64
+		v = m.Val().(float64)
+		mdto.Value = &v
+	case model.COUNTER:
+		var d int64
+		d = m.Val().(int64)
+		mdto.Delta = &d
+	}
+
+	return mdto
 }

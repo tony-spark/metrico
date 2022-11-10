@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"github.com/tony-spark/metrico/internal/model"
 	"math/rand"
 	"time"
 )
@@ -22,8 +23,8 @@ func NewRandomMetricCollector() *RandomMetricCollector {
 	return rmc
 }
 
-func (c *RandomMetricCollector) Metrics() []Metric {
-	return []Metric{c.metric}
+func (c *RandomMetricCollector) Metrics() []model.Metric {
+	return []model.Metric{c.metric}
 }
 
 func (c *RandomMetricCollector) Update() {

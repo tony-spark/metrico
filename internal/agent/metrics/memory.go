@@ -3,8 +3,7 @@ package metrics
 import (
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal"
-	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 	"runtime"
 )
 
@@ -19,7 +18,7 @@ type PollMetric struct {
 }
 
 type MemoryMetricCollector struct {
-	metrics      []Metric
+	metrics      []model.Metric
 	memStats     *runtime.MemStats
 	refreshCount uint
 }
@@ -118,42 +117,32 @@ func (m MemoryMetric) String() string {
 	return fmt.Sprint(m.valueFunction(m.collector.memStats))
 }
 
-func (m MemoryMetric) Name() string {
+func (m MemoryMetric) ID() string {
 	return m.name
 }
 
 func (m MemoryMetric) Type() string {
-	return internal.GAUGE
+	return model.GAUGE
 }
 
-func (m MemoryMetric) ToDTO() *dto.Metric {
-	value := m.valueFunction(m.collector.memStats)
-	return &dto.Metric{
-		ID:    m.name,
-		MType: m.Type(),
-		Value: &value,
-	}
+func (m MemoryMetric) Val() interface{} {
+	return m.valueFunction(m.collector.memStats)
 }
 
 func (p PollMetric) String() string {
 	return fmt.Sprint(p.collector.refreshCount)
 }
 
-func (p PollMetric) Name() string {
+func (p PollMetric) ID() string {
 	return "PollCount"
 }
 
 func (p PollMetric) Type() string {
-	return internal.COUNTER
+	return model.COUNTER
 }
 
-func (p PollMetric) ToDTO() *dto.Metric {
-	value := int64(p.collector.refreshCount)
-	return &dto.Metric{
-		ID:    p.Name(),
-		MType: p.Type(),
-		Delta: &value,
-	}
+func (p PollMetric) Val() interface{} {
+	return p.collector.refreshCount
 }
 
 func (c *MemoryMetricCollector) Update() {
@@ -162,7 +151,7 @@ func (c *MemoryMetricCollector) Update() {
 	c.refreshCount++
 }
 
-func (c *MemoryMetricCollector) Metrics() []Metric {
+func (c *MemoryMetricCollector) Metrics() []model.Metric {
 	return c.metrics
 }
 

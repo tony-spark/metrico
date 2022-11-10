@@ -1,8 +1,10 @@
 package transports
 
-import "github.com/tony-spark/metrico/internal/agent/metrics"
+import (
+	"github.com/tony-spark/metrico/internal/model"
+)
 
 type Transport interface {
-	SendMetric(metric metrics.Metric) error
-	SendMetrics(mx []metrics.Metric) error
+	SendMetric(metric model.Metric) error
+	SendMetrics(mx []model.Metric) error
 }

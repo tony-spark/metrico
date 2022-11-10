@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/storage"
 	"io"
 	"net/http"
@@ -97,7 +97,7 @@ func TestRouter(t *testing.T) {
 		v := float64(10.0)
 		mreq := &dto.Metric{
 			ID:    "UpdateTest1",
-			MType: internal.GAUGE,
+			MType: model.GAUGE,
 			Value: &v,
 		}
 		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)
@@ -108,7 +108,7 @@ func TestRouter(t *testing.T) {
 		v := int64(10)
 		mreq := &dto.Metric{
 			ID:    "UpdateTest2",
-			MType: internal.COUNTER,
+			MType: model.COUNTER,
 			Delta: &v,
 		}
 		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)

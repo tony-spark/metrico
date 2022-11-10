@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/assets"
-	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"html/template"
 	"io/ioutil"
@@ -51,7 +51,7 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
 		return nil, err
 	}
-	if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+	if m.MType != model.GAUGE && m.MType != model.COUNTER {
 		http.Error(w, "Unknown metric type", http.StatusBadRequest)
 		return nil, fmt.Errorf("unknown metric type: %v", m.MType)
 	}
@@ -72,7 +72,7 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 		return nil, err
 	}
 	for _, m := range ms {
-		if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+		if m.MType != model.GAUGE && m.MType != model.COUNTER {
 			http.Error(w, "Unknown metric type", http.StatusBadRequest)
 			return nil, fmt.Errorf("unknown metric type: %v", m.MType)
 		}
@@ -121,7 +121,7 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			http.Error(w, "could not save metric", http.StatusInternalServerError)
 			return
 		}
-		b, err := json.Marshal(updated.ToDTO())
+		b, err := json.Marshal(dto.NewMetric(updated))
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
@@ -154,12 +154,12 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 				return
 			}
 			switch m.MType {
-			case internal.GAUGE:
+			case model.GAUGE:
 				gs = append(gs, models.GaugeValue{
 					Name:  m.ID,
 					Value: *m.Value,
 				})
-			case internal.COUNTER:
+			case model.COUNTER:
 				cs = append(cs, models.CounterValue{
 					Name:  m.ID,
 					Value: *m.Delta,
@@ -195,7 +195,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		mdto = mvalue.ToDTO()
+		mdto = dto.NewMetric(mvalue)
 		if router.h != nil {
 			mdto.Hash, err = router.h.Hash(*mdto)
 			if err != nil {
@@ -227,7 +227,7 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		w.Write([]byte(fmt.Sprint(m.V())))
+		w.Write([]byte(fmt.Sprint(m.Val())))
 	}
 }
 
@@ -289,7 +289,7 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 
 		}
 		for _, m := range ms {
-			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.V())})
+			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.Val())})
 		}
 
 		sort.Slice(data.Items, func(i, j int) bool {

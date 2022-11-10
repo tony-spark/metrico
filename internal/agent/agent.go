@@ -22,7 +22,7 @@ func (a MetricsAgent) poll() {
 	for _, collector := range a.collectors {
 		collector.Update()
 		for _, metric := range collector.Metrics() {
-			log.Debug().Msgf("got %v (%v) = %v", metric.Name(), metric.Type(), metric.String())
+			log.Debug().Msgf("got %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
 		}
 	}
 }

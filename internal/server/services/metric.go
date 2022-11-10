@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 )
 
@@ -37,7 +37,7 @@ func (s MetricService) UpdateCounter(ctx context.Context, c models.CounterValue)
 	return
 }
 
-func (s MetricService) UpdateMetric(ctx context.Context, m models.Metric) (models.Metric, error) {
+func (s MetricService) UpdateMetric(ctx context.Context, m model.Metric) (model.Metric, error) {
 	switch m := m.(type) {
 	case models.GaugeValue:
 		return s.UpdateGauge(ctx, m)
@@ -68,9 +68,9 @@ func (s MetricService) UpdateAll(ctx context.Context, gs []models.GaugeValue, cs
 	return nil
 }
 
-func (s MetricService) Get(ctx context.Context, name string, mType string) (models.Metric, error) {
+func (s MetricService) Get(ctx context.Context, name string, mType string) (model.Metric, error) {
 	switch mType {
-	case internal.GAUGE:
+	case model.GAUGE:
 		g, err := s.gr.GetByName(ctx, name)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve gauge value: %w", err)
@@ -79,7 +79,7 @@ func (s MetricService) Get(ctx context.Context, name string, mType string) (mode
 			return nil, nil
 		}
 		return g, nil
-	case internal.COUNTER:
+	case model.COUNTER:
 		c, err := s.cr.GetByName(ctx, name)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve counter value: %w", err)
@@ -93,8 +93,8 @@ func (s MetricService) Get(ctx context.Context, name string, mType string) (mode
 	}
 }
 
-func (s MetricService) GetAll(ctx context.Context) ([]models.Metric, error) {
-	var ms []models.Metric
+func (s MetricService) GetAll(ctx context.Context) ([]model.Metric, error) {
+	var ms []model.Metric
 	gs, err := s.gr.GetAll(ctx)
 	if err != nil {
 		return nil, err
