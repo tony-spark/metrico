@@ -31,22 +31,22 @@ type CounterDB struct {
 func NewPgManager(dsn string) (*PgDatabaseManager, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not open database: %w", err)
 	}
 
 	driver, err := iofs.New(dbdir.EmbeddedDBFiles, "migrations")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not find db migrations: %w", err)
 	}
 
 	migrator, err := migrate.NewWithSourceInstance("iofs", driver, dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not initialize db migrations: %w", err)
 	}
 
 	err = migrator.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return nil, err
+		return nil, fmt.Errorf("could not execute db migrations: %w", err)
 	}
 
 	return &PgDatabaseManager{

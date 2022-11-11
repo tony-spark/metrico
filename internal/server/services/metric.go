@@ -97,11 +97,11 @@ func (s MetricService) GetAll(ctx context.Context) ([]model.Metric, error) {
 	var ms []model.Metric
 	gs, err := s.gr.GetAll(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not retrieve all gauges: %w", err)
 	}
 	cs, err := s.cr.GetAll(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not retrieve all counters: %w", err)
 	}
 	for _, g := range gs {
 		ms = append(ms, *g)

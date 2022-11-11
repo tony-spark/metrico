@@ -30,7 +30,7 @@ func main() {
 
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal().Msg("Could not parse config")
+		log.Fatal().Err(err).Msg("Could not parse config")
 	}
 
 	log.Info().Msgf("Starting metrics agent with config %+v", cfg)
