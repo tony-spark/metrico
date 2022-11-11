@@ -29,13 +29,18 @@ func main() {
 
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal().Msg("Could not parse env config")
+		log.Fatal().Err(err).Msg("Could not parse env config")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	log.Info().Msgf("Starting metrics server with config %+v", cfg)
-	go log.Fatal().Msg(server.Run(ctx, cfg).Error())
+	go func() {
+		err = server.Run(ctx, cfg)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error running server")
+		}
+	}()
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)

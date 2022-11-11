@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"time"
 )
@@ -32,7 +33,10 @@ func (s *PersistenceService) Run(ctx context.Context) {
 			for {
 				select {
 				case <-saveTicker.C:
-					s.p.Save(ctx, s.gr, s.cr)
+					err := s.p.Save(ctx, s.gr, s.cr)
+					if err != nil {
+						log.Error().Err(err).Msg("Could not persist metrics")
+					}
 				case <-ctx.Done():
 					return
 				}
@@ -40,7 +44,10 @@ func (s *PersistenceService) Run(ctx context.Context) {
 		}()
 	} else {
 		s.postUpdate = func() {
-			s.p.Save(ctx, s.gr, s.cr)
+			err := s.p.Save(ctx, s.gr, s.cr)
+			if err != nil {
+				log.Error().Err(err).Msg("could not persist metrics")
+			}
 		}
 	}
 }
