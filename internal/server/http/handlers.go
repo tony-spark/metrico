@@ -1,0 +1,327 @@
+package http
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/assets"
+	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/server/models"
+	"html/template"
+	"io/ioutil"
+	"mime"
+	"net/http"
+	"sort"
+	"strconv"
+)
+
+var metricsViewTemplate *template.Template
+
+func init() {
+	var err error
+	metricsViewTemplate, err = template.ParseFS(assets.EmbeddedAssets, "templates/metrics.html")
+	if err != nil {
+		log.Fatal().Msgf("Could not load template %v", err)
+	}
+}
+
+func checkContentType(w http.ResponseWriter, r *http.Request) error {
+	ctype := r.Header.Get("Content-Type")
+	t, _, err := mime.ParseMediaType(ctype)
+	if err != nil || t != "application/json" {
+		http.Error(w, "Only application/json supported", http.StatusUnsupportedMediaType)
+		return err
+	}
+	return nil
+}
+
+func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Could not read body", http.StatusBadRequest)
+		return nil, err
+	}
+	var m dto.Metric
+	err = json.Unmarshal(body, &m)
+	if err != nil {
+		http.Error(w, "Could not parse json", http.StatusBadRequest)
+		return nil, err
+	}
+	if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+		http.Error(w, "Unknown metric type", http.StatusBadRequest)
+		return nil, fmt.Errorf("unknown metric type: %v", m.MType)
+	}
+	return &m, nil
+}
+
+func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Could not read body", http.StatusBadRequest)
+		return nil, err
+	}
+	var ms []dto.Metric
+	err = json.Unmarshal(body, &ms)
+	if err != nil {
+		http.Error(w, "Could not parse json", http.StatusBadRequest)
+		return nil, err
+	}
+	for _, m := range ms {
+		if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+			http.Error(w, "Unknown metric type", http.StatusBadRequest)
+			return nil, fmt.Errorf("unknown metric type: %v", m.MType)
+		}
+	}
+	return ms, nil
+}
+
+func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter, r *http.Request) bool {
+	if router.h != nil {
+		ok, err := router.h.Check(mdto)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			http.Error(w, "could not check metric integrity", http.StatusInternalServerError)
+			return false
+		}
+		if !ok {
+			http.Error(w, "metric integrity check failed (wrong hash?)", http.StatusBadRequest)
+		}
+		return ok
+	}
+	return true
+}
+
+func (router Router) UpdatePostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := checkContentType(w, r); err != nil {
+			log.Error().Msg(err.Error())
+			return
+		}
+		mdto, err := readMetric(w, r)
+		if err != nil {
+			log.Error().Msg(err.Error())
+			return
+		}
+		if !router.checkHash(*mdto, w, r) {
+			return
+		}
+		if !mdto.HasValue() {
+			http.Error(w, "metric value is null", http.StatusBadRequest)
+			return
+		}
+		mvalue := models.FromDTO(*mdto)
+		updated, err := router.ms.UpdateMetric(context.Background(), mvalue)
+		if err != nil {
+			log.Error().Err(err).Msgf("could not save metric: %s", err.Error())
+			http.Error(w, "could not save metric", http.StatusInternalServerError)
+			return
+		}
+		b, err := json.Marshal(updated.ToDTO())
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	}
+}
+
+func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := checkContentType(w, r); err != nil {
+			log.Error().Msg(err.Error())
+			return
+		}
+		ms, err := readMetrics(w, r)
+		if err != nil {
+			return
+		}
+		for _, m := range ms {
+			if !router.checkHash(m, w, r) {
+				return
+			}
+		}
+		gs := make([]models.GaugeValue, 0)
+		cs := make([]models.CounterValue, 0)
+		for _, m := range ms {
+			if !m.HasValue() {
+				http.Error(w, "metric value is null", http.StatusBadRequest)
+				return
+			}
+			switch m.MType {
+			case internal.GAUGE:
+				gs = append(gs, models.GaugeValue{
+					Name:  m.ID,
+					Value: *m.Value,
+				})
+			case internal.COUNTER:
+				cs = append(cs, models.CounterValue{
+					Name:  m.ID,
+					Value: *m.Delta,
+				})
+			}
+		}
+		err = router.ms.UpdateAll(context.Background(), gs, cs)
+		if err != nil {
+			log.Error().Msg(err.Error())
+			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
+		}
+	}
+}
+
+func (router Router) GetPostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := checkContentType(w, r); err != nil {
+			log.Error().Msg(err.Error())
+			return
+		}
+		mdto, err := readMetric(w, r)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			return
+		}
+		mvalue, err := router.ms.Get(context.Background(), mdto.ID, mdto.MType)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			http.Error(w, "could not retrieve metric", http.StatusInternalServerError)
+			return
+		}
+		if mvalue == nil {
+			http.Error(w, "metric not found", http.StatusNotFound)
+			return
+		}
+		mdto = mvalue.ToDTO()
+		if router.h != nil {
+			mdto.Hash, err = router.h.Hash(*mdto)
+			if err != nil {
+				http.Error(w, "could not calculate hash for integrity", http.StatusInternalServerError)
+				return
+			}
+		}
+		b, err := json.Marshal(mdto)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	}
+}
+
+func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		m, err := router.ms.Get(context.Background(), name, mType)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			http.Error(w, "error retrieving value", http.StatusInternalServerError)
+			return
+		}
+		if m == nil {
+			http.Error(w, "metric not found", http.StatusNotFound)
+			return
+		}
+		w.Write([]byte(fmt.Sprint(m.V())))
+	}
+}
+
+func (router Router) CounterPostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		svalue := chi.URLParam(r, "svalue")
+
+		value, err := strconv.ParseInt(svalue, 10, 64)
+		if err != nil {
+			http.Error(w, "VALUE type must be int64", http.StatusBadRequest)
+			return
+		}
+		_, err = router.ms.UpdateCounter(context.Background(), models.CounterValue{Name: name, Value: value})
+		if err != nil {
+			log.Error().Err(err).Msgf("Could not add and save counter value %s = %v", name, value)
+			http.Error(w, "Could not add and save counter value", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (router Router) GaugePostHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		svalue := chi.URLParam(r, "svalue")
+
+		value, err := strconv.ParseFloat(svalue, 64)
+		if err != nil {
+			http.Error(w, "VALUE type must be float64", http.StatusBadRequest)
+			return
+		}
+		_, err = router.ms.UpdateGauge(context.Background(), models.GaugeValue{Name: name, Value: value})
+		if err != nil {
+			log.Error().Err(err).Msgf("Could not save gauge value %s = %v", name, value)
+			http.Error(w, "Could not save gauge value", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (router Router) MetricsViewPageHandler() http.HandlerFunc {
+	type Item struct {
+		Name  string
+		Type  string
+		Value string
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		data := struct {
+			Items []Item
+		}{}
+
+		ms, err := router.ms.GetAll(context.Background())
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+
+		}
+		for _, m := range ms {
+			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.V())})
+		}
+
+		sort.Slice(data.Items, func(i, j int) bool {
+			return data.Items[i].Name < data.Items[j].Name
+		})
+
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+
+		err = metricsViewTemplate.Execute(w, data)
+		if err != nil {
+			log.Error().Err(err).Msg(err.Error())
+			http.Error(w, "Could not display metrics", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (router Router) PingHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if router.dbm == nil {
+			http.Error(w, "DB connection is not configured", http.StatusServiceUnavailable)
+			return
+		}
+		ok, err := router.dbm.Check(context.Background())
+		if err != nil || !ok {
+			http.Error(w, "could not check DB or DB is not OK", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func handleUnknown(w http.ResponseWriter, r *http.Request) {
+	mtype := chi.URLParam(r, "*")
+	http.Error(w, "unknown metric type in "+mtype, http.StatusNotImplemented)
+}

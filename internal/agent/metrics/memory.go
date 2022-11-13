@@ -2,9 +2,9 @@ package metrics
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
-	"log"
 	"runtime"
 )
 
@@ -157,8 +157,7 @@ func (p PollMetric) ToDTO() *dto.Metric {
 }
 
 func (c *MemoryMetricCollector) Update() {
-	// TODO: ReadMemStats causes stopTheWorld, should we do something about it?
-	log.Println("Reading memory statistics")
+	log.Trace().Msg("Reading memory statistics")
 	runtime.ReadMemStats(c.memStats)
 	c.refreshCount++
 }

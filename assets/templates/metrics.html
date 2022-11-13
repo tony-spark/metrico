@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="10">
+    <style>
+        body {
+            font-family: monospace;
+        }
+        table, th, td {
+            border: 1px solid;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 4px;
+        }
+    </style>
+    <title>Metrics</title>
+</head>
+<body>
+<table style="border: 1px solid;">
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>Type</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Items}}
+        <tr>
+            <td>{{ .Name }}</td>
+            <td>{{ .Type }}</td>
+            <td>{{ .Value }}</td>
+        </tr>
+        {{else}}
+        <tr>
+            <td colspan="3"><strong>No metrics</strong></td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</body>
+</html>

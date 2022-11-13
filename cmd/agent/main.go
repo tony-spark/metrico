@@ -4,9 +4,12 @@ import (
 	"context"
 	"flag"
 	"github.com/caarlos0/env/v6"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	a "github.com/tony-spark/metrico/internal/agent"
-	t "github.com/tony-spark/metrico/internal/agent/transports"
-	"log"
+	"github.com/tony-spark/metrico/internal/agent/config"
+	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/hash"
 	"os"
 	"os/signal"
 	"strings"
@@ -14,38 +17,42 @@ import (
 	"time"
 )
 
-type config struct {
-	Address        string        `env:"ADDRESS"`
-	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
-	PollInterval   time.Duration `env:"POLL_INTERVAL"`
-}
-
 func main() {
-	cfg := config{}
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+
+	cfg := config.Config{}
 
 	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address to send metrics to")
 	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "report interval")
 	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "poll interval")
+	flag.StringVar(&cfg.Key, "k", "", "hash key")
 	flag.Parse()
 
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal("Could not parse config")
+		log.Fatal().Msg("Could not parse config")
 	}
 
-	log.Printf("Starting metrics agent with config %+v \n", cfg)
+	log.Info().Msgf("Starting metrics agent with config %+v", cfg)
 
 	baseURL := "http://" + strings.Trim(cfg.Address, "\"")
+
+	var t transports.Transport
+	if len(cfg.Key) > 0 {
+		t = transports.NewHTTPTransportHashed(baseURL, hash.NewSha256Hmac(cfg.Key))
+	} else {
+		t = transports.NewHTTPTransport(baseURL)
+	}
 
 	agent := a.NewMetricsAgent(
 		cfg.PollInterval,
 		cfg.ReportInterval,
-		t.NewHTTPTransport(baseURL))
+		t)
 	go agent.Run(context.Background())
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
 
 	<-terminateSignal
-	log.Println("Application interrupted via system signal")
+	log.Info().Msg("Application interrupted via system signal")
 }
