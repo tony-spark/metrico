@@ -22,12 +22,12 @@ func NewDelayed(t Transport, delay time.Duration) Delayed {
 
 func (d Delayed) SendMetric(metric model.Metric) error {
 	time.Sleep(d.delay)
-	return d.SendMetric(metric)
+	return d.t.SendMetric(metric)
 }
 
 func (d Delayed) SendMetrics(mx []model.Metric) error {
 	time.Sleep(d.delay)
-	return d.SendMetrics(mx)
+	return d.t.SendMetrics(mx)
 }
 
 func NewDummy() Dummy {
