@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
+	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
 	"github.com/tony-spark/metrico/internal/hash"
 	"os"
@@ -44,10 +45,16 @@ func main() {
 		t = transports.NewHTTPTransport(baseURL)
 	}
 
+	cs := []metrics.MetricCollector{
+		metrics.NewMemoryMetricCollector(),
+		metrics.NewRandomMetricCollector(),
+		metrics.NewPsUtilMetricsCollector(),
+	}
+
 	agent := a.NewMetricsAgent(
 		cfg.PollInterval,
 		cfg.ReportInterval,
-		t)
+		t, cs)
 	go agent.Run(context.Background())
 
 	terminateSignal := make(chan os.Signal, 1)

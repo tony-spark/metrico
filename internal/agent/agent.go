@@ -17,9 +17,16 @@ type MetricsAgent struct {
 	reportInterval time.Duration
 }
 
-func (a MetricsAgent) poll() {
+func (a MetricsAgent) poll(ctx context.Context) {
 	log.Trace().Msg("poll")
 	for _, collector := range a.collectors {
+		select {
+		case <-ctx.Done():
+			log.Warn().Msg("poll cancelled via context")
+			return
+		default:
+		}
+
 		collector.Update()
 		for _, metric := range collector.Metrics() {
 			log.Debug().Msgf("got %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
@@ -29,9 +36,16 @@ func (a MetricsAgent) poll() {
 
 // TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
 // TODO: what if report is running concurrently with poll?
-func (a MetricsAgent) report() {
+func (a MetricsAgent) report(ctx context.Context) {
 	log.Info().Msg("sending report")
 	for _, collector := range a.collectors {
+		select {
+		case <-ctx.Done():
+			log.Warn().Msg("sending cancelled via context")
+			return
+		default:
+		}
+
 		err := a.transport.SendMetrics(collector.Metrics())
 		if err != nil {
 			log.Error().Err(err).Msg("could not send metrics")
@@ -44,22 +58,17 @@ func (a MetricsAgent) report() {
 	}
 }
 
-func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport) *MetricsAgent {
+func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport, collectors []metrics.MetricCollector) *MetricsAgent {
 	return &MetricsAgent{
 		transport:      transport,
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
+		collectors:     collectors,
 	}
 }
 
 // Run starts collecting metrics and sending it via transport
 func (a MetricsAgent) Run(ctx context.Context) {
-	a.collectors = append(a.collectors,
-		metrics.NewMemoryMetricCollector(),
-		metrics.NewRandomMetricCollector(),
-		metrics.NewPsUtilMetricsCollector(),
-	)
-
 	pollTicker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)
 	defer func() {
@@ -70,11 +79,10 @@ func (a MetricsAgent) Run(ctx context.Context) {
 	for {
 		select {
 		case <-pollTicker.C:
-			go a.poll()
+			go a.poll(ctx)
 		case <-reportTicker.C:
-			go a.report()
+			go a.report(ctx)
 		case <-ctx.Done():
-			// TODO: interrupt poll() and report()
 			log.Info().Msg("Agent stopped via context")
 			return
 		}
