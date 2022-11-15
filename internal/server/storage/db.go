@@ -139,8 +139,8 @@ func (gdb GaugeDB) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
 	return tx.Commit()
 }
 
-func (gdb GaugeDB) GetAll(ctx context.Context) ([]*models.GaugeValue, error) {
-	gs := make([]*models.GaugeValue, 0)
+func (gdb GaugeDB) GetAll(ctx context.Context) ([]models.GaugeValue, error) {
+	gs := make([]models.GaugeValue, 0)
 
 	rows, err := gdb.db.QueryContext(ctx, `SELECT name, value FROM gauges`)
 	if err != nil {
@@ -155,7 +155,7 @@ func (gdb GaugeDB) GetAll(ctx context.Context) ([]*models.GaugeValue, error) {
 			return nil, err
 		}
 
-		gs = append(gs, &g)
+		gs = append(gs, g)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -250,8 +250,8 @@ func (cdb CounterDB) Save(ctx context.Context, name string, value int64) (*model
 	return &c, nil
 }
 
-func (cdb CounterDB) GetAll(ctx context.Context) ([]*models.CounterValue, error) {
-	cs := make([]*models.CounterValue, 0)
+func (cdb CounterDB) GetAll(ctx context.Context) ([]models.CounterValue, error) {
+	cs := make([]models.CounterValue, 0)
 
 	rows, err := cdb.db.QueryContext(ctx, `SELECT name, value FROM counters`)
 	if err != nil {
@@ -266,7 +266,7 @@ func (cdb CounterDB) GetAll(ctx context.Context) ([]*models.CounterValue, error)
 			return nil, err
 		}
 
-		cs = append(cs, &g)
+		cs = append(cs, g)
 	}
 
 	if err = rows.Err(); err != nil {

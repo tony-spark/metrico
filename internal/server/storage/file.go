@@ -14,8 +14,8 @@ type JSONFilePersistence struct {
 }
 
 type data struct {
-	Gauges   []*models.GaugeValue
-	Counters []*models.CounterValue
+	Gauges   []models.GaugeValue
+	Counters []models.CounterValue
 }
 
 func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {

@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"github.com/tony-spark/metrico/internal/server/models"
-	"golang.org/x/exp/maps"
 )
 
 type SingleValueGaugeRepository struct {
@@ -26,15 +25,19 @@ func NewSingleValueCounterRepository() *SingleValueCounterRepository {
 	}
 }
 
-func (r SingleValueGaugeRepository) GetByName(ctx context.Context, name string) (*models.GaugeValue, error) {
+func (r SingleValueGaugeRepository) GetByName(_ context.Context, name string) (*models.GaugeValue, error) {
 	return r.gauges[name], nil
 }
 
-func (r SingleValueGaugeRepository) GetAll(ctx context.Context) ([]*models.GaugeValue, error) {
-	return maps.Values(r.gauges), nil
+func (r SingleValueGaugeRepository) GetAll(_ context.Context) ([]models.GaugeValue, error) {
+	gs := make([]models.GaugeValue, 0, len(r.gauges))
+	for _, g := range r.gauges {
+		gs = append(gs, *g)
+	}
+	return gs, nil
 }
 
-func (r SingleValueGaugeRepository) Save(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
+func (r SingleValueGaugeRepository) Save(_ context.Context, name string, value float64) (*models.GaugeValue, error) {
 	gauge, ok := r.gauges[name]
 	if !ok {
 		gauge = &models.GaugeValue{Name: name}
@@ -51,15 +54,19 @@ func (r SingleValueGaugeRepository) SaveAll(ctx context.Context, gs []models.Gau
 	return nil
 }
 
-func (r SingleValueCounterRepository) GetByName(ctx context.Context, name string) (*models.CounterValue, error) {
+func (r SingleValueCounterRepository) GetByName(_ context.Context, name string) (*models.CounterValue, error) {
 	return r.counters[name], nil
 }
 
-func (r SingleValueCounterRepository) GetAll(ctx context.Context) ([]*models.CounterValue, error) {
-	return maps.Values(r.counters), nil
+func (r SingleValueCounterRepository) GetAll(_ context.Context) ([]models.CounterValue, error) {
+	cs := make([]models.CounterValue, 0, len(r.counters))
+	for _, c := range r.counters {
+		cs = append(cs, *c)
+	}
+	return cs, nil
 }
 
-func (r SingleValueCounterRepository) AddAndSave(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (r SingleValueCounterRepository) AddAndSave(_ context.Context, name string, value int64) (*models.CounterValue, error) {
 	counter, ok := r.counters[name]
 	if !ok {
 		counter = &models.CounterValue{
@@ -79,7 +86,7 @@ func (r SingleValueCounterRepository) AddAndSaveAll(ctx context.Context, cs []mo
 	return nil
 }
 
-func (r SingleValueCounterRepository) Save(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (r SingleValueCounterRepository) Save(_ context.Context, name string, value int64) (*models.CounterValue, error) {
 	counter := &models.CounterValue{
 		Name:  name,
 		Value: value,

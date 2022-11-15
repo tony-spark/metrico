@@ -104,10 +104,10 @@ func (s MetricService) GetAll(ctx context.Context) ([]model.Metric, error) {
 		return nil, fmt.Errorf("could not retrieve all counters: %w", err)
 	}
 	for _, g := range gs {
-		ms = append(ms, *g)
+		ms = append(ms, g)
 	}
 	for _, c := range cs {
-		ms = append(ms, *c)
+		ms = append(ms, c)
 	}
 	return ms, nil
 }

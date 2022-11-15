@@ -9,7 +9,7 @@ type GaugeRepository interface {
 	GetByName(ctx context.Context, name string) (*GaugeValue, error)
 	Save(ctx context.Context, name string, value float64) (*GaugeValue, error)
 	SaveAll(ctx context.Context, gs []GaugeValue) error
-	GetAll(ctx context.Context) ([]*GaugeValue, error)
+	GetAll(ctx context.Context) ([]GaugeValue, error)
 }
 
 type CounterRepository interface {
@@ -17,7 +17,7 @@ type CounterRepository interface {
 	AddAndSave(ctx context.Context, name string, value int64) (*CounterValue, error)
 	AddAndSaveAll(ctx context.Context, cs []CounterValue) error
 	Save(ctx context.Context, name string, value int64) (*CounterValue, error)
-	GetAll(ctx context.Context) ([]*CounterValue, error)
+	GetAll(ctx context.Context) ([]CounterValue, error)
 }
 
 type DBManager interface {
