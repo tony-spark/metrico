@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
-	"github.com/caarlos0/env/v6"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	a "github.com/tony-spark/metrico/internal/agent"
@@ -21,26 +19,16 @@ import (
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
-	cfg := config.Config{}
-
-	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address to send metrics to")
-	flag.DurationVar(&cfg.ReportInterval, "r", 10*time.Second, "report interval")
-	flag.DurationVar(&cfg.PollInterval, "p", 2*time.Second, "poll interval")
-	flag.StringVar(&cfg.Key, "k", "", "hash key")
-	flag.Parse()
-
-	err := env.Parse(&cfg)
+	err := config.Parse()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not parse config")
 	}
 
-	log.Info().Msgf("Starting metrics agent with config %+v", cfg)
-
-	baseURL := "http://" + strings.Trim(cfg.Address, "\"")
+	baseURL := "http://" + strings.Trim(config.Config.Address, "\"")
 
 	var t transports.Transport
-	if len(cfg.Key) > 0 {
-		t = transports.NewHTTPTransportHashed(baseURL, hash.NewSha256Hmac(cfg.Key))
+	if len(config.Config.Key) > 0 {
+		t = transports.NewHTTPTransportHashed(baseURL, hash.NewSha256Hmac(config.Config.Key))
 	} else {
 		t = transports.NewHTTPTransport(baseURL)
 	}
@@ -52,8 +40,8 @@ func main() {
 	}
 
 	agent := a.NewMetricsAgent(
-		cfg.PollInterval,
-		cfg.ReportInterval,
+		config.Config.PollInterval,
+		config.Config.ReportInterval,
 		t, cs)
 	go agent.Run(context.Background())
 

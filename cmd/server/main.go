@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
-	"github.com/caarlos0/env/v6"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/server"
@@ -17,26 +15,16 @@ import (
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
-	cfg := config.Config{}
-
-	flag.StringVar(&cfg.Address, "a", "127.0.0.1:8080", "address to listen")
-	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "store interval")
-	flag.StringVar(&cfg.StoreFilename, "f", "/tmp/devops-metrics-db.json", "file to persist metrics")
-	flag.BoolVar(&cfg.Restore, "r", true, "whether to load metric from file on start")
-	flag.StringVar(&cfg.Key, "k", "", "hash key")
-	flag.StringVar(&cfg.DSN, "d", "", "database connection string")
-	flag.Parse()
-
-	err := env.Parse(&cfg)
+	err := config.Parse()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not parse env config")
+		log.Fatal().Err(err).Msg("Could not parse config")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	log.Info().Msgf("Starting metrics server with config %+v", cfg)
+	log.Info().Msgf("Starting metrics server with config %+v", config.Config)
 	go func() {
-		err = server.Run(ctx, cfg)
+		err = server.Run(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error running server")
 		}

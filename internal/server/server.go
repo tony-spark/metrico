@@ -15,14 +15,14 @@ import (
 // Run starts a server for collecting metrics using HTTP API
 //
 // HTTP server listens bindAddress
-func Run(ctx context.Context, cfg config.Config) error {
+func Run(ctx context.Context) error {
 	var gr models.GaugeRepository
 	var cr models.CounterRepository
 	var dbm models.DBManager
 	var postUpdateFn func() = nil
 	var err error
-	if len(cfg.DSN) > 0 {
-		dbm, err = storage.NewPgManager(cfg.DSN)
+	if len(config.Config.DSN) > 0 {
+		dbm, err = storage.NewPgManager(config.Config.DSN)
 		if err != nil {
 			return err
 		}
@@ -33,7 +33,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 		var store models.RepositoryPersistence
 		gr = storage.NewSingleValueGaugeRepository()
 		cr = storage.NewSingleValueCounterRepository()
-		store, err = storage.NewJSONFilePersistence(cfg.StoreFilename)
+		store, err = storage.NewJSONFilePersistence(config.Config.StoreFilename)
 		if err != nil {
 			return err
 		}
@@ -41,22 +41,22 @@ func Run(ctx context.Context, cfg config.Config) error {
 			store.Save(ctx, gr, cr)
 			store.Close()
 		}()
-		if cfg.Restore {
+		if config.Config.Restore {
 			err = store.Load(ctx, gr, cr)
 			if err != nil {
 				return err
 			}
 		}
-		pservice := services.NewPersistenceService(store, cfg.StoreInterval, gr, cr)
+		pservice := services.NewPersistenceService(store, config.Config.StoreInterval, gr, cr)
 		pservice.Run(ctx)
 		postUpdateFn = pservice.PostUpdate()
 	}
 
 	var h dto.Hasher
-	if len(cfg.Key) > 0 {
-		h = hash.NewSha256Hmac(cfg.Key)
+	if len(config.Config.Key) > 0 {
+		h = hash.NewSha256Hmac(config.Config.Key)
 	}
 
-	return http.ListenAndServe(cfg.Address,
+	return http.ListenAndServe(config.Config.Address,
 		router.NewRouter(gr, cr, postUpdateFn, h, dbm).R)
 }
