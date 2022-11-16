@@ -38,7 +38,7 @@ func New(options ...Option) Server {
 	return s
 }
 
-func WithHttpServer(listenAddress string) Option {
+func WithHTTPServer(listenAddress string) Option {
 	return func(s *Server) {
 		s.listenAddress = listenAddress
 	}
