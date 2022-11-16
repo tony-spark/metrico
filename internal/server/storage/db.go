@@ -10,21 +10,17 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbdir "github.com/tony-spark/metrico/db"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"time"
 )
 
 type PgDatabaseManager struct {
 	db  *sql.DB
-	gdb *GaugeDB
-	cdb *CounterDB
+	mdb MetricDb
 }
 
-type GaugeDB struct {
-	db *sql.DB
-}
-
-type CounterDB struct {
+type MetricDb struct {
 	db *sql.DB
 }
 
@@ -51,8 +47,7 @@ func NewPgManager(dsn string) (*PgDatabaseManager, error) {
 
 	return &PgDatabaseManager{
 		db:  db,
-		gdb: &GaugeDB{db: db},
-		cdb: &CounterDB{db: db},
+		mdb: MetricDb{db: db},
 	}, nil
 }
 
@@ -65,20 +60,16 @@ func (pgm PgDatabaseManager) Check(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (pgm PgDatabaseManager) GaugeRepository() models.GaugeRepository {
-	return pgm.gdb
-}
-
-func (pgm PgDatabaseManager) CounterRepository() models.CounterRepository {
-	return pgm.cdb
+func (pgm PgDatabaseManager) MetricRepository() models.MetricRepository {
+	return pgm.mdb
 }
 
 func (pgm PgDatabaseManager) Close() error {
 	return pgm.db.Close()
 }
 
-func (gdb GaugeDB) GetGaugeByName(ctx context.Context, name string) (*models.GaugeValue, error) {
-	row := gdb.db.QueryRowContext(ctx, "SELECT name, value FROM gauges WHERE name = $1", name)
+func (db MetricDb) GetGaugeByName(ctx context.Context, name string) (*models.GaugeValue, error) {
+	row := db.db.QueryRowContext(ctx, "SELECT name, value FROM gauges WHERE name = $1", name)
 	var g models.GaugeValue
 
 	err := row.Scan(&g.Name, &g.Value)
@@ -91,13 +82,13 @@ func (gdb GaugeDB) GetGaugeByName(ctx context.Context, name string) (*models.Gau
 	return &g, nil
 }
 
-func (gdb GaugeDB) SaveGauge(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
+func (db MetricDb) SaveGauge(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
 	g := models.GaugeValue{
 		Name:  name,
 		Value: value,
 	}
 
-	result, err := gdb.db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO gauges(name, value) VALUES ($1, $2)
 				ON CONFLICT (name) DO UPDATE 
 				SET value = excluded.value`,
@@ -114,8 +105,8 @@ func (gdb GaugeDB) SaveGauge(ctx context.Context, name string, value float64) (*
 	return &g, nil
 }
 
-func (gdb GaugeDB) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
-	tx, err := gdb.db.Begin()
+func (db MetricDb) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
+	tx, err := db.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -139,10 +130,10 @@ func (gdb GaugeDB) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) er
 	return tx.Commit()
 }
 
-func (gdb GaugeDB) GetAllGauges(ctx context.Context) ([]models.GaugeValue, error) {
+func (db MetricDb) getAllGauges(ctx context.Context) ([]models.GaugeValue, error) {
 	gs := make([]models.GaugeValue, 0)
 
-	rows, err := gdb.db.QueryContext(ctx, `SELECT name, value FROM gauges`)
+	rows, err := db.db.QueryContext(ctx, `SELECT name, value FROM gauges`)
 	if err != nil {
 		return nil, err
 	}
@@ -165,8 +156,8 @@ func (gdb GaugeDB) GetAllGauges(ctx context.Context) ([]models.GaugeValue, error
 	return gs, nil
 }
 
-func (cdb CounterDB) GetCounterByName(ctx context.Context, name string) (*models.CounterValue, error) {
-	row := cdb.db.QueryRowContext(ctx, "SELECT name, value FROM counters WHERE name = $1", name)
+func (db MetricDb) GetCounterByName(ctx context.Context, name string) (*models.CounterValue, error) {
+	row := db.db.QueryRowContext(ctx, "SELECT name, value FROM counters WHERE name = $1", name)
 	var g models.CounterValue
 
 	err := row.Scan(&g.Name, &g.Value)
@@ -179,8 +170,8 @@ func (cdb CounterDB) GetCounterByName(ctx context.Context, name string) (*models
 	return &g, nil
 }
 
-func (cdb CounterDB) AddAndSaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
-	result, err := cdb.db.ExecContext(ctx,
+func (db MetricDb) AddAndSaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO counters(name, value) VALUES ($1, $2)
 				ON CONFLICT (name) DO UPDATE 
 				SET value = counters.value + excluded.value`,
@@ -194,7 +185,7 @@ func (cdb CounterDB) AddAndSaveCounter(ctx context.Context, name string, value i
 		return nil, err
 	}
 
-	c, err := cdb.GetCounterByName(ctx, name)
+	c, err := db.GetCounterByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +193,8 @@ func (cdb CounterDB) AddAndSaveCounter(ctx context.Context, name string, value i
 	return c, nil
 }
 
-func (cdb CounterDB) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
-	tx, err := cdb.db.Begin()
+func (db MetricDb) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
+	tx, err := db.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -227,13 +218,13 @@ func (cdb CounterDB) AddAndSaveAllCounters(ctx context.Context, cs []models.Coun
 	return tx.Commit()
 }
 
-func (cdb CounterDB) SaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (db MetricDb) SaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
 	c := models.CounterValue{
 		Name:  name,
 		Value: value,
 	}
 
-	result, err := cdb.db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO counters(name, value) VALUES ($1, $2)
 				ON CONFLICT (name) DO UPDATE 
 				SET value = excluded.value`,
@@ -250,10 +241,10 @@ func (cdb CounterDB) SaveCounter(ctx context.Context, name string, value int64) 
 	return &c, nil
 }
 
-func (cdb CounterDB) GetAllCounters(ctx context.Context) ([]models.CounterValue, error) {
+func (db MetricDb) getAllCounters(ctx context.Context) ([]models.CounterValue, error) {
 	cs := make([]models.CounterValue, 0)
 
-	rows, err := cdb.db.QueryContext(ctx, `SELECT name, value FROM counters`)
+	rows, err := db.db.QueryContext(ctx, `SELECT name, value FROM counters`)
 	if err != nil {
 		return nil, err
 	}
@@ -274,6 +265,29 @@ func (cdb CounterDB) GetAllCounters(ctx context.Context) ([]models.CounterValue,
 	}
 
 	return cs, nil
+}
+
+func (db MetricDb) GetAll(ctx context.Context) ([]model.Metric, error) {
+	ms := make([]model.Metric, 0)
+
+	gs, err := db.getAllGauges(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cs, err := db.getAllCounters(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, g := range gs {
+		ms = append(ms, g)
+	}
+	for _, c := range cs {
+		ms = append(ms, c)
+	}
+
+	return ms, nil
 }
 
 func checkOneAffected(r sql.Result) error {

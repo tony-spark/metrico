@@ -2,42 +2,27 @@ package storage
 
 import (
 	"context"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 )
 
-type SingleValueGaugeRepository struct {
-	gauges map[string]*models.GaugeValue
-}
-
-type SingleValueCounterRepository struct {
+type SingleValueRepository struct {
+	gauges   map[string]*models.GaugeValue
 	counters map[string]*models.CounterValue
 }
 
-func NewSingleValueGaugeRepository() *SingleValueGaugeRepository {
-	return &SingleValueGaugeRepository{
-		gauges: make(map[string]*models.GaugeValue),
-	}
-}
-
-func NewSingleValueCounterRepository() *SingleValueCounterRepository {
-	return &SingleValueCounterRepository{
+func NewSingleValueRepository() *SingleValueRepository {
+	return &SingleValueRepository{
+		gauges:   make(map[string]*models.GaugeValue),
 		counters: make(map[string]*models.CounterValue),
 	}
 }
 
-func (r SingleValueGaugeRepository) GetGaugeByName(_ context.Context, name string) (*models.GaugeValue, error) {
+func (r SingleValueRepository) GetGaugeByName(_ context.Context, name string) (*models.GaugeValue, error) {
 	return r.gauges[name], nil
 }
 
-func (r SingleValueGaugeRepository) GetAllGauges(_ context.Context) ([]models.GaugeValue, error) {
-	gs := make([]models.GaugeValue, 0, len(r.gauges))
-	for _, g := range r.gauges {
-		gs = append(gs, *g)
-	}
-	return gs, nil
-}
-
-func (r SingleValueGaugeRepository) SaveGauge(_ context.Context, name string, value float64) (*models.GaugeValue, error) {
+func (r SingleValueRepository) SaveGauge(_ context.Context, name string, value float64) (*models.GaugeValue, error) {
 	gauge, ok := r.gauges[name]
 	if !ok {
 		gauge = &models.GaugeValue{Name: name}
@@ -47,26 +32,18 @@ func (r SingleValueGaugeRepository) SaveGauge(_ context.Context, name string, va
 	return gauge, nil
 }
 
-func (r SingleValueGaugeRepository) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
+func (r SingleValueRepository) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
 	for _, g := range gs {
 		r.SaveGauge(ctx, g.Name, g.Value)
 	}
 	return nil
 }
 
-func (r SingleValueCounterRepository) GetCounterByName(_ context.Context, name string) (*models.CounterValue, error) {
+func (r SingleValueRepository) GetCounterByName(_ context.Context, name string) (*models.CounterValue, error) {
 	return r.counters[name], nil
 }
 
-func (r SingleValueCounterRepository) GetAllCounters(_ context.Context) ([]models.CounterValue, error) {
-	cs := make([]models.CounterValue, 0, len(r.counters))
-	for _, c := range r.counters {
-		cs = append(cs, *c)
-	}
-	return cs, nil
-}
-
-func (r SingleValueCounterRepository) AddAndSaveCounter(_ context.Context, name string, value int64) (*models.CounterValue, error) {
+func (r SingleValueRepository) AddAndSaveCounter(_ context.Context, name string, value int64) (*models.CounterValue, error) {
 	counter, ok := r.counters[name]
 	if !ok {
 		counter = &models.CounterValue{
@@ -79,18 +56,29 @@ func (r SingleValueCounterRepository) AddAndSaveCounter(_ context.Context, name 
 	return counter, nil
 }
 
-func (r SingleValueCounterRepository) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
+func (r SingleValueRepository) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
 	for _, c := range cs {
 		r.AddAndSaveCounter(ctx, c.Name, c.Value)
 	}
 	return nil
 }
 
-func (r SingleValueCounterRepository) SaveCounter(_ context.Context, name string, value int64) (*models.CounterValue, error) {
+func (r SingleValueRepository) SaveCounter(_ context.Context, name string, value int64) (*models.CounterValue, error) {
 	counter := &models.CounterValue{
 		Name:  name,
 		Value: value,
 	}
 	r.counters[name] = counter
 	return counter, nil
+}
+
+func (r SingleValueRepository) GetAll(_ context.Context) ([]model.Metric, error) {
+	ms := make([]model.Metric, 0, len(r.counters)+len(r.gauges))
+	for _, c := range r.counters {
+		ms = append(ms, *c)
+	}
+	for _, g := range r.gauges {
+		ms = append(ms, *g)
+	}
+	return ms, nil
 }

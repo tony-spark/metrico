@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestSingleValueGaugeRepository(t *testing.T) {
-	r := NewSingleValueGaugeRepository()
+func TestSingleValueRepository(t *testing.T) {
+	r := NewSingleValueRepository()
 
 	t.Run("gauge not found", func(t *testing.T) {
 		gauge, err := r.GetGaugeByName(context.Background(), "test")
@@ -34,11 +34,6 @@ func TestSingleValueGaugeRepository(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, gauge2.Value, value)
 	})
-}
-
-func TestSingleValueCounterRepository(t *testing.T) {
-	r := NewSingleValueCounterRepository()
-
 	t.Run("counter not found", func(t *testing.T) {
 		counter, err := r.GetCounterByName(context.Background(), "test")
 		assert.Nil(t, counter)

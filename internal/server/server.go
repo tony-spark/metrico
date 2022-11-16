@@ -66,8 +66,7 @@ func WithFileStore(filename string, storeInterval time.Duration, restore bool) O
 
 // Run starts a server
 func (s Server) Run(ctx context.Context) error {
-	var gr models.GaugeRepository
-	var cr models.CounterRepository
+	var r models.MetricRepository
 	var dbm models.DBManager
 	var postUpdateFn func() = nil
 	var err error
@@ -76,28 +75,26 @@ func (s Server) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		gr = dbm.GaugeRepository()
-		cr = dbm.CounterRepository()
+		r = dbm.MetricRepository()
 		defer dbm.Close()
 	} else {
 		var store models.RepositoryPersistence
-		gr = storage.NewSingleValueGaugeRepository()
-		cr = storage.NewSingleValueCounterRepository()
+		r = storage.NewSingleValueRepository()
 		store, err = storage.NewJSONFilePersistence(s.storeFilename)
 		if err != nil {
 			return err
 		}
 		defer func() {
-			store.Save(ctx, gr, cr)
+			store.Save(ctx, r)
 			store.Close()
 		}()
 		if s.restore {
-			err = store.Load(ctx, gr, cr)
+			err = store.Load(ctx, r)
 			if err != nil {
 				return err
 			}
 		}
-		pservice := services.NewPersistenceService(store, s.storeInterval, gr, cr)
+		pservice := services.NewPersistenceService(store, s.storeInterval, r)
 		pservice.Run(ctx)
 		postUpdateFn = pservice.PostUpdate()
 	}
@@ -108,5 +105,5 @@ func (s Server) Run(ctx context.Context) error {
 	}
 
 	return http.ListenAndServe(s.listenAddress,
-		router.NewRouter(gr, cr, postUpdateFn, h, dbm).R)
+		router.NewRouter(r, postUpdateFn, h, dbm).R)
 }

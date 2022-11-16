@@ -18,12 +18,12 @@ type Router struct {
 	h   dto.Hasher
 }
 
-func NewRouter(gaugeRepo models.GaugeRepository, counterRepo models.CounterRepository, postUpdateFn func(), h dto.Hasher, dbm models.DBManager) *Router {
+func NewRouter(repo models.MetricRepository, postUpdateFn func(), h dto.Hasher, dbm models.DBManager) *Router {
 	r := chi.NewRouter()
 
 	router := &Router{
 		dbm: dbm,
-		ms:  services.NewMetricService(gaugeRepo, counterRepo, postUpdateFn),
+		ms:  services.NewMetricService(repo, postUpdateFn),
 		R:   r,
 		h:   h,
 	}
