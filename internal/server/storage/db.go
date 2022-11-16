@@ -17,10 +17,10 @@ import (
 
 type PgDatabaseManager struct {
 	db  *sql.DB
-	mdb MetricDb
+	mdb MetricDВ
 }
 
-type MetricDb struct {
+type MetricDВ struct {
 	db *sql.DB
 }
 
@@ -47,7 +47,7 @@ func NewPgManager(dsn string) (*PgDatabaseManager, error) {
 
 	return &PgDatabaseManager{
 		db:  db,
-		mdb: MetricDb{db: db},
+		mdb: MetricDВ{db: db},
 	}, nil
 }
 
@@ -68,7 +68,7 @@ func (pgm PgDatabaseManager) Close() error {
 	return pgm.db.Close()
 }
 
-func (db MetricDb) GetGaugeByName(ctx context.Context, name string) (*models.GaugeValue, error) {
+func (db MetricDВ) GetGaugeByName(ctx context.Context, name string) (*models.GaugeValue, error) {
 	row := db.db.QueryRowContext(ctx, "SELECT name, value FROM gauges WHERE name = $1", name)
 	var g models.GaugeValue
 
@@ -82,7 +82,7 @@ func (db MetricDb) GetGaugeByName(ctx context.Context, name string) (*models.Gau
 	return &g, nil
 }
 
-func (db MetricDb) SaveGauge(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
+func (db MetricDВ) SaveGauge(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
 	g := models.GaugeValue{
 		Name:  name,
 		Value: value,
@@ -105,7 +105,7 @@ func (db MetricDb) SaveGauge(ctx context.Context, name string, value float64) (*
 	return &g, nil
 }
 
-func (db MetricDb) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
+func (db MetricDВ) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
 	tx, err := db.db.Begin()
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func (db MetricDb) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) er
 	return tx.Commit()
 }
 
-func (db MetricDb) getAllGauges(ctx context.Context) ([]models.GaugeValue, error) {
+func (db MetricDВ) getAllGauges(ctx context.Context) ([]models.GaugeValue, error) {
 	gs := make([]models.GaugeValue, 0)
 
 	rows, err := db.db.QueryContext(ctx, `SELECT name, value FROM gauges`)
@@ -156,7 +156,7 @@ func (db MetricDb) getAllGauges(ctx context.Context) ([]models.GaugeValue, error
 	return gs, nil
 }
 
-func (db MetricDb) GetCounterByName(ctx context.Context, name string) (*models.CounterValue, error) {
+func (db MetricDВ) GetCounterByName(ctx context.Context, name string) (*models.CounterValue, error) {
 	row := db.db.QueryRowContext(ctx, "SELECT name, value FROM counters WHERE name = $1", name)
 	var g models.CounterValue
 
@@ -170,7 +170,7 @@ func (db MetricDb) GetCounterByName(ctx context.Context, name string) (*models.C
 	return &g, nil
 }
 
-func (db MetricDb) AddAndSaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (db MetricDВ) AddAndSaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
 	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO counters(name, value) VALUES ($1, $2)
 				ON CONFLICT (name) DO UPDATE 
@@ -193,7 +193,7 @@ func (db MetricDb) AddAndSaveCounter(ctx context.Context, name string, value int
 	return c, nil
 }
 
-func (db MetricDb) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
+func (db MetricDВ) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
 	tx, err := db.db.Begin()
 	if err != nil {
 		return err
@@ -218,7 +218,7 @@ func (db MetricDb) AddAndSaveAllCounters(ctx context.Context, cs []models.Counte
 	return tx.Commit()
 }
 
-func (db MetricDb) SaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (db MetricDВ) SaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
 	c := models.CounterValue{
 		Name:  name,
 		Value: value,
@@ -241,7 +241,7 @@ func (db MetricDb) SaveCounter(ctx context.Context, name string, value int64) (*
 	return &c, nil
 }
 
-func (db MetricDb) getAllCounters(ctx context.Context) ([]models.CounterValue, error) {
+func (db MetricDВ) getAllCounters(ctx context.Context) ([]models.CounterValue, error) {
 	cs := make([]models.CounterValue, 0)
 
 	rows, err := db.db.QueryContext(ctx, `SELECT name, value FROM counters`)
@@ -267,7 +267,7 @@ func (db MetricDb) getAllCounters(ctx context.Context) ([]models.CounterValue, e
 	return cs, nil
 }
 
-func (db MetricDb) GetAll(ctx context.Context) ([]model.Metric, error) {
+func (db MetricDВ) GetAll(ctx context.Context) ([]model.Metric, error) {
 	ms := make([]model.Metric, 0)
 
 	gs, err := db.getAllGauges(ctx)
