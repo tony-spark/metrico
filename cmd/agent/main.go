@@ -6,9 +6,6 @@ import (
 	"github.com/rs/zerolog/log"
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/agent/transports"
-	"github.com/tony-spark/metrico/internal/hash"
 	"os"
 	"os/signal"
 	"strings"
@@ -26,23 +23,12 @@ func main() {
 
 	baseURL := "http://" + strings.Trim(config.Config.Address, "\"")
 
-	var t transports.Transport
-	if len(config.Config.Key) > 0 {
-		t = transports.NewHTTPTransportHashed(baseURL, hash.NewSha256Hmac(config.Config.Key))
-	} else {
-		t = transports.NewHTTPTransport(baseURL)
-	}
+	agent := a.New(
+		a.WithHTTPTransport(baseURL, config.Config.Key),
+		a.WithPollInterval(config.Config.PollInterval),
+		a.WithReportInterval(config.Config.ReportInterval),
+	)
 
-	cs := []metrics.MetricCollector{
-		metrics.NewMemoryMetricCollector(),
-		metrics.NewRandomMetricCollector(),
-		metrics.NewPsUtilMetricsCollector(),
-	}
-
-	agent := a.NewMetricsAgent(
-		config.Config.PollInterval,
-		config.Config.ReportInterval,
-		t, cs)
 	go agent.Run(context.Background())
 
 	terminateSignal := make(chan os.Signal, 1)

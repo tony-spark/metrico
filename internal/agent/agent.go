@@ -6,15 +6,74 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/hash"
 	"net"
 	"time"
 )
 
 type MetricsAgent struct {
-	collectors     []metrics.MetricCollector
-	transport      transports.Transport
 	pollInterval   time.Duration
 	reportInterval time.Duration
+	collectors     []metrics.MetricCollector
+	transport      transports.Transport
+}
+
+type Option func(a *MetricsAgent)
+
+func New(options ...Option) MetricsAgent {
+	a := MetricsAgent{
+		pollInterval:   2 * time.Second,
+		reportInterval: 10 * time.Second,
+		collectors: []metrics.MetricCollector{
+			metrics.NewMemoryMetricCollector(),
+			metrics.NewRandomMetricCollector(),
+			metrics.NewPsUtilMetricsCollector(),
+		},
+		transport: transports.NewHTTPTransport("http://127.0.0.1:8080"),
+	}
+
+	for _, opt := range options {
+		opt(&a)
+	}
+
+	return a
+}
+
+func WithHTTPTransport(url string, hashKey string) Option {
+	return func(a *MetricsAgent) {
+		if len(hashKey) > 0 {
+			a.transport = transports.NewHTTPTransportHashed(url, hash.NewSha256Hmac(hashKey))
+		} else {
+			a.transport = transports.NewHTTPTransport(url)
+		}
+	}
+}
+
+func WithPollInterval(interval time.Duration) Option {
+	return func(a *MetricsAgent) {
+		a.pollInterval = interval
+	}
+}
+
+func WithReportInterval(interval time.Duration) Option {
+	return func(a *MetricsAgent) {
+		a.reportInterval = interval
+	}
+}
+
+func WithCollectors(cs []metrics.MetricCollector) Option {
+	return func(a *MetricsAgent) {
+		a.collectors = cs
+	}
+}
+
+func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport, collectors []metrics.MetricCollector) *MetricsAgent {
+	return &MetricsAgent{
+		transport:      transport,
+		pollInterval:   pollInterval,
+		reportInterval: reportInterval,
+		collectors:     collectors,
+	}
 }
 
 func (a MetricsAgent) poll(ctx context.Context) {
@@ -55,15 +114,6 @@ func (a MetricsAgent) report(ctx context.Context) {
 				return
 			}
 		}
-	}
-}
-
-func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport, collectors []metrics.MetricCollector) *MetricsAgent {
-	return &MetricsAgent{
-		transport:      transport,
-		pollInterval:   pollInterval,
-		reportInterval: reportInterval,
-		collectors:     collectors,
 	}
 }
 
