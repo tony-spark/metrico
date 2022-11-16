@@ -22,9 +22,14 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	log.Info().Msgf("Starting metrics server with config %+v", config.Config)
+	s := server.New(
+		server.WithHttpServer(config.Config.Address),
+		server.WithDB(config.Config.DSN),
+		server.WithHashKey(config.Config.Key),
+		server.WithFileStore(config.Config.StoreFilename, config.Config.StoreInterval, config.Config.Restore),
+	)
 	go func() {
-		err = server.Run(ctx)
+		err = s.Run(ctx)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error running server")
 		}
