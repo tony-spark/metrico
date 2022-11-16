@@ -22,7 +22,7 @@ func NewMetricService(gr models.GaugeRepository, cr models.CounterRepository, po
 }
 
 func (s MetricService) UpdateGauge(ctx context.Context, g models.GaugeValue) (gv *models.GaugeValue, err error) {
-	gv, err = s.gr.Save(ctx, g.Name, g.Value)
+	gv, err = s.gr.SaveGauge(ctx, g.Name, g.Value)
 	if err == nil && s.postUpdate != nil {
 		s.postUpdate()
 	}
@@ -30,7 +30,7 @@ func (s MetricService) UpdateGauge(ctx context.Context, g models.GaugeValue) (gv
 }
 
 func (s MetricService) UpdateCounter(ctx context.Context, c models.CounterValue) (cv *models.CounterValue, err error) {
-	cv, err = s.cr.AddAndSave(ctx, c.Name, c.Value)
+	cv, err = s.cr.AddAndSaveCounter(ctx, c.Name, c.Value)
 	if err == nil && s.postUpdate != nil {
 		s.postUpdate()
 	}
@@ -51,13 +51,13 @@ func (s MetricService) UpdateMetric(ctx context.Context, m model.Metric) (model.
 func (s MetricService) UpdateAll(ctx context.Context, gs []models.GaugeValue, cs []models.CounterValue) error {
 	// TODO do we need single db transaction here?
 	if len(gs) > 0 {
-		err := s.gr.SaveAll(ctx, gs)
+		err := s.gr.SaveAllGauges(ctx, gs)
 		if err != nil {
 			return fmt.Errorf("could not save metris: %w", err)
 		}
 	}
 	if len(cs) > 0 {
-		err := s.cr.AddAndSaveAll(ctx, cs)
+		err := s.cr.AddAndSaveAllCounters(ctx, cs)
 		if err != nil {
 			return fmt.Errorf("could not save metris: %w", err)
 		}
@@ -71,7 +71,7 @@ func (s MetricService) UpdateAll(ctx context.Context, gs []models.GaugeValue, cs
 func (s MetricService) Get(ctx context.Context, name string, mType string) (model.Metric, error) {
 	switch mType {
 	case model.GAUGE:
-		g, err := s.gr.GetByName(ctx, name)
+		g, err := s.gr.GetGaugeByName(ctx, name)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve gauge value: %w", err)
 		}
@@ -80,7 +80,7 @@ func (s MetricService) Get(ctx context.Context, name string, mType string) (mode
 		}
 		return g, nil
 	case model.COUNTER:
-		c, err := s.cr.GetByName(ctx, name)
+		c, err := s.cr.GetCounterByName(ctx, name)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve counter value: %w", err)
 		}
@@ -95,11 +95,11 @@ func (s MetricService) Get(ctx context.Context, name string, mType string) (mode
 
 func (s MetricService) GetAll(ctx context.Context) ([]model.Metric, error) {
 	var ms []model.Metric
-	gs, err := s.gr.GetAll(ctx)
+	gs, err := s.gr.GetAllGauges(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve all gauges: %w", err)
 	}
-	cs, err := s.cr.GetAll(ctx)
+	cs, err := s.cr.GetAllCounters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve all counters: %w", err)
 	}

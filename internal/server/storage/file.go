@@ -37,11 +37,11 @@ func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepositor
 		return err
 	}
 	for _, g := range d.Gauges {
-		gr.Save(ctx, g.Name, g.Value)
+		gr.SaveGauge(ctx, g.Name, g.Value)
 		log.Debug().Msgf("Loaded gauge %v = %v", g.Name, g.Value)
 	}
 	for _, c := range d.Counters {
-		cr.Save(ctx, c.Name, c.Value)
+		cr.SaveCounter(ctx, c.Name, c.Value)
 		log.Debug().Msgf("Loaded counter %v = %v", c.Name, c.Value)
 	}
 	return nil
@@ -50,11 +50,11 @@ func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepositor
 func (fp JSONFilePersistence) Save(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {
 	// TODO make save operation atomic
 	log.Debug().Msgf("Saving metrics to %v", fp.file.Name())
-	gauges, err := gr.GetAll(ctx)
+	gauges, err := gr.GetAllGauges(ctx)
 	if err != nil {
 		return err
 	}
-	counters, err := cr.GetAll(ctx)
+	counters, err := cr.GetAllCounters(ctx)
 	if err != nil {
 		return err
 	}

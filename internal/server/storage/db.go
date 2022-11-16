@@ -77,7 +77,7 @@ func (pgm PgDatabaseManager) Close() error {
 	return pgm.db.Close()
 }
 
-func (gdb GaugeDB) GetByName(ctx context.Context, name string) (*models.GaugeValue, error) {
+func (gdb GaugeDB) GetGaugeByName(ctx context.Context, name string) (*models.GaugeValue, error) {
 	row := gdb.db.QueryRowContext(ctx, "SELECT name, value FROM gauges WHERE name = $1", name)
 	var g models.GaugeValue
 
@@ -91,7 +91,7 @@ func (gdb GaugeDB) GetByName(ctx context.Context, name string) (*models.GaugeVal
 	return &g, nil
 }
 
-func (gdb GaugeDB) Save(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
+func (gdb GaugeDB) SaveGauge(ctx context.Context, name string, value float64) (*models.GaugeValue, error) {
 	g := models.GaugeValue{
 		Name:  name,
 		Value: value,
@@ -114,7 +114,7 @@ func (gdb GaugeDB) Save(ctx context.Context, name string, value float64) (*model
 	return &g, nil
 }
 
-func (gdb GaugeDB) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
+func (gdb GaugeDB) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
 	tx, err := gdb.db.Begin()
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func (gdb GaugeDB) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
 	return tx.Commit()
 }
 
-func (gdb GaugeDB) GetAll(ctx context.Context) ([]models.GaugeValue, error) {
+func (gdb GaugeDB) GetAllGauges(ctx context.Context) ([]models.GaugeValue, error) {
 	gs := make([]models.GaugeValue, 0)
 
 	rows, err := gdb.db.QueryContext(ctx, `SELECT name, value FROM gauges`)
@@ -165,7 +165,7 @@ func (gdb GaugeDB) GetAll(ctx context.Context) ([]models.GaugeValue, error) {
 	return gs, nil
 }
 
-func (cdb CounterDB) GetByName(ctx context.Context, name string) (*models.CounterValue, error) {
+func (cdb CounterDB) GetCounterByName(ctx context.Context, name string) (*models.CounterValue, error) {
 	row := cdb.db.QueryRowContext(ctx, "SELECT name, value FROM counters WHERE name = $1", name)
 	var g models.CounterValue
 
@@ -179,7 +179,7 @@ func (cdb CounterDB) GetByName(ctx context.Context, name string) (*models.Counte
 	return &g, nil
 }
 
-func (cdb CounterDB) AddAndSave(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (cdb CounterDB) AddAndSaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
 	result, err := cdb.db.ExecContext(ctx,
 		`INSERT INTO counters(name, value) VALUES ($1, $2)
 				ON CONFLICT (name) DO UPDATE 
@@ -194,7 +194,7 @@ func (cdb CounterDB) AddAndSave(ctx context.Context, name string, value int64) (
 		return nil, err
 	}
 
-	c, err := cdb.GetByName(ctx, name)
+	c, err := cdb.GetCounterByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (cdb CounterDB) AddAndSave(ctx context.Context, name string, value int64) (
 	return c, nil
 }
 
-func (cdb CounterDB) AddAndSaveAll(ctx context.Context, cs []models.CounterValue) error {
+func (cdb CounterDB) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
 	tx, err := cdb.db.Begin()
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (cdb CounterDB) AddAndSaveAll(ctx context.Context, cs []models.CounterValue
 	return tx.Commit()
 }
 
-func (cdb CounterDB) Save(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
+func (cdb CounterDB) SaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
 	c := models.CounterValue{
 		Name:  name,
 		Value: value,
@@ -250,7 +250,7 @@ func (cdb CounterDB) Save(ctx context.Context, name string, value int64) (*model
 	return &c, nil
 }
 
-func (cdb CounterDB) GetAll(ctx context.Context) ([]models.CounterValue, error) {
+func (cdb CounterDB) GetAllCounters(ctx context.Context) ([]models.CounterValue, error) {
 	cs := make([]models.CounterValue, 0)
 
 	rows, err := cdb.db.QueryContext(ctx, `SELECT name, value FROM counters`)

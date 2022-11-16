@@ -25,11 +25,11 @@ func NewSingleValueCounterRepository() *SingleValueCounterRepository {
 	}
 }
 
-func (r SingleValueGaugeRepository) GetByName(_ context.Context, name string) (*models.GaugeValue, error) {
+func (r SingleValueGaugeRepository) GetGaugeByName(_ context.Context, name string) (*models.GaugeValue, error) {
 	return r.gauges[name], nil
 }
 
-func (r SingleValueGaugeRepository) GetAll(_ context.Context) ([]models.GaugeValue, error) {
+func (r SingleValueGaugeRepository) GetAllGauges(_ context.Context) ([]models.GaugeValue, error) {
 	gs := make([]models.GaugeValue, 0, len(r.gauges))
 	for _, g := range r.gauges {
 		gs = append(gs, *g)
@@ -37,7 +37,7 @@ func (r SingleValueGaugeRepository) GetAll(_ context.Context) ([]models.GaugeVal
 	return gs, nil
 }
 
-func (r SingleValueGaugeRepository) Save(_ context.Context, name string, value float64) (*models.GaugeValue, error) {
+func (r SingleValueGaugeRepository) SaveGauge(_ context.Context, name string, value float64) (*models.GaugeValue, error) {
 	gauge, ok := r.gauges[name]
 	if !ok {
 		gauge = &models.GaugeValue{Name: name}
@@ -47,18 +47,18 @@ func (r SingleValueGaugeRepository) Save(_ context.Context, name string, value f
 	return gauge, nil
 }
 
-func (r SingleValueGaugeRepository) SaveAll(ctx context.Context, gs []models.GaugeValue) error {
+func (r SingleValueGaugeRepository) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
 	for _, g := range gs {
-		r.Save(ctx, g.Name, g.Value)
+		r.SaveGauge(ctx, g.Name, g.Value)
 	}
 	return nil
 }
 
-func (r SingleValueCounterRepository) GetByName(_ context.Context, name string) (*models.CounterValue, error) {
+func (r SingleValueCounterRepository) GetCounterByName(_ context.Context, name string) (*models.CounterValue, error) {
 	return r.counters[name], nil
 }
 
-func (r SingleValueCounterRepository) GetAll(_ context.Context) ([]models.CounterValue, error) {
+func (r SingleValueCounterRepository) GetAllCounters(_ context.Context) ([]models.CounterValue, error) {
 	cs := make([]models.CounterValue, 0, len(r.counters))
 	for _, c := range r.counters {
 		cs = append(cs, *c)
@@ -66,7 +66,7 @@ func (r SingleValueCounterRepository) GetAll(_ context.Context) ([]models.Counte
 	return cs, nil
 }
 
-func (r SingleValueCounterRepository) AddAndSave(_ context.Context, name string, value int64) (*models.CounterValue, error) {
+func (r SingleValueCounterRepository) AddAndSaveCounter(_ context.Context, name string, value int64) (*models.CounterValue, error) {
 	counter, ok := r.counters[name]
 	if !ok {
 		counter = &models.CounterValue{
@@ -79,14 +79,14 @@ func (r SingleValueCounterRepository) AddAndSave(_ context.Context, name string,
 	return counter, nil
 }
 
-func (r SingleValueCounterRepository) AddAndSaveAll(ctx context.Context, cs []models.CounterValue) error {
+func (r SingleValueCounterRepository) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
 	for _, c := range cs {
-		r.AddAndSave(ctx, c.Name, c.Value)
+		r.AddAndSaveCounter(ctx, c.Name, c.Value)
 	}
 	return nil
 }
 
-func (r SingleValueCounterRepository) Save(_ context.Context, name string, value int64) (*models.CounterValue, error) {
+func (r SingleValueCounterRepository) SaveCounter(_ context.Context, name string, value int64) (*models.CounterValue, error) {
 	counter := &models.CounterValue{
 		Name:  name,
 		Value: value,
