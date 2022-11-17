@@ -8,6 +8,7 @@ import (
 	"github.com/tony-spark/metrico/internal/agent/transports"
 	"github.com/tony-spark/metrico/internal/hash"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -93,28 +94,38 @@ func (a MetricsAgent) poll(ctx context.Context) {
 	}
 }
 
-// TODO: if HTTP requests is taking too long, don't allow report goroutines to pile up
-// TODO: what if report is running concurrently with poll?
 func (a MetricsAgent) report(ctx context.Context) {
 	log.Info().Msg("sending report")
-	for _, collector := range a.collectors {
-		select {
-		case <-ctx.Done():
-			log.Warn().Msg("sending cancelled via context")
-			return
-		default:
-		}
+	timeoutCtx, cancel := context.WithTimeout(ctx, a.reportInterval)
+	defer cancel()
 
-		err := a.transport.SendMetrics(collector.Metrics())
-		if err != nil {
-			log.Error().Err(err).Msg("could not send metrics")
-			var ne net.Error
-			if errors.As(err, &ne) {
-				log.Info().Msg("network error, interrupting current report...")
+	var wg sync.WaitGroup
+
+	for _, collector := range a.collectors {
+		wg.Add(1)
+		go func(c metrics.MetricCollector) {
+			defer wg.Done()
+
+			select {
+			case <-timeoutCtx.Done():
+				log.Warn().Msg("sending cancelled via context (timeout?)")
 				return
+			default:
 			}
-		}
+
+			err := a.transport.SendMetricsWithContext(timeoutCtx, c.Metrics())
+			if err != nil {
+				log.Error().Err(err).Msg("could not send metrics")
+				var ne net.Error
+				if errors.As(err, &ne) {
+					log.Info().Msg("network error, interrupting current report...")
+					return
+				}
+			}
+		}(collector)
 	}
+
+	wg.Wait()
 }
 
 // Run starts collecting metrics and sending it via transport

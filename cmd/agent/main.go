@@ -29,11 +29,13 @@ func main() {
 		a.WithReportInterval(config.Config.ReportInterval),
 	)
 
-	go agent.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	go agent.Run(ctx)
 
 	terminateSignal := make(chan os.Signal, 1)
 	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
 
 	<-terminateSignal
+	cancel()
 	log.Info().Msg("Application interrupted via system signal")
 }

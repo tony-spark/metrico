@@ -1,6 +1,7 @@
 package transports
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
@@ -42,7 +43,11 @@ func (h HTTPTransport) SendMetric(metric model.Metric) error {
 }
 
 func (h HTTPTransport) SendMetrics(mx []model.Metric) error {
-	return h.sendJSONBatch(mx)
+	return h.sendJSONBatch(context.Background(), mx)
+}
+
+func (h HTTPTransport) SendMetricsWithContext(ctx context.Context, mx []model.Metric) error {
+	return h.sendJSONBatch(ctx, mx)
 }
 
 func (h HTTPTransport) send(metric model.Metric) error {
@@ -92,7 +97,7 @@ func (h HTTPTransport) sendJSON(metric model.Metric) error {
 	return nil
 }
 
-func (h HTTPTransport) sendJSONBatch(mx []model.Metric) error {
+func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) error {
 	var dtos []dto.Metric
 	for _, m := range mx {
 		mdto, err := h.createDTO(m)
@@ -102,6 +107,7 @@ func (h HTTPTransport) sendJSONBatch(mx []model.Metric) error {
 		dtos = append(dtos, *mdto)
 	}
 	req := h.client.R().
+		SetContext(ctx).
 		SetBody(dtos)
 	resp, err := req.Post(endpointSendJSONBatch)
 	if err != nil {
