@@ -9,23 +9,26 @@ import (
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/services"
+	"github.com/tony-spark/metrico/internal/server/web"
 )
 
 type Router struct {
-	dbm models.DBManager
-	ms  *services.MetricService
-	R   chi.Router
-	h   dto.Hasher
+	dbm       models.DBManager
+	ms        *services.MetricService
+	R         chi.Router
+	h         dto.Hasher
+	templates web.TemplateProvider
 }
 
-func NewRouter(repo models.MetricRepository, postUpdateFn func(), h dto.Hasher, dbm models.DBManager) *Router {
+func NewRouter(repo models.MetricRepository, postUpdateFn func(), h dto.Hasher, dbm models.DBManager, templates web.TemplateProvider) *Router {
 	r := chi.NewRouter()
 
 	router := &Router{
-		dbm: dbm,
-		ms:  services.NewMetricService(repo, postUpdateFn),
-		R:   r,
-		h:   h,
+		dbm:       dbm,
+		ms:        services.NewMetricService(repo, postUpdateFn),
+		R:         r,
+		h:         h,
+		templates: templates,
 	}
 
 	r.Use(middleware.RequestID)

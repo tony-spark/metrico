@@ -6,27 +6,15 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/assets"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
-	"html/template"
 	"io"
 	"mime"
 	"net/http"
 	"sort"
 	"strconv"
 )
-
-var metricsViewTemplate *template.Template
-
-func init() {
-	var err error
-	metricsViewTemplate, err = template.ParseFS(assets.EmbeddedAssets, "templates/metrics.html")
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Could not load template %v", err)
-	}
-}
 
 func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	ctype := r.Header.Get("Content-Type")
@@ -299,7 +287,7 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
-		err = metricsViewTemplate.Execute(w, data)
+		err = router.templates.MetricsViewTemplate().Execute(w, data)
 		if err != nil {
 			log.Error().Err(err).Msg("Error rendering webpage")
 			http.Error(w, "Could not display metrics", http.StatusInternalServerError)

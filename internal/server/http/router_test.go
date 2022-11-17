@@ -8,18 +8,26 @@ import (
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/storage"
+	"github.com/tony-spark/metrico/internal/server/web"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 func TestRouter(t *testing.T) {
 	mr := storage.NewSingleValueRepository()
-	r := NewRouter(mr, nil, nil, nil)
+	templates := web.NewEmbeddedTemplates()
+	r := NewRouter(mr, nil, nil, nil, templates)
 	ts := httptest.NewServer(r.R)
 	defer ts.Close()
 
+	t.Run("metrics page", func(t *testing.T) {
+		statusCode, body := testRequest(t, ts, "GET", "/")
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.True(t, strings.Contains(body, "<body>"))
+	})
 	t.Run("unknown metric type", func(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "POST", "/update/unknown/testCounter/100")
 		assert.Equal(t, http.StatusNotImplemented, statusCode)

@@ -8,6 +8,7 @@ import (
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/services"
 	"github.com/tony-spark/metrico/internal/server/storage"
+	"github.com/tony-spark/metrico/internal/server/web"
 	"net/http"
 	"time"
 )
@@ -104,6 +105,8 @@ func (s Server) Run(ctx context.Context) error {
 		h = hash.NewSha256Hmac(s.key)
 	}
 
+	templates := web.NewEmbeddedTemplates()
+
 	return http.ListenAndServe(s.listenAddress,
-		router.NewRouter(r, postUpdateFn, h, dbm).R)
+		router.NewRouter(r, postUpdateFn, h, dbm, templates).R)
 }
