@@ -11,7 +11,7 @@ import (
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"sort"
@@ -40,7 +40,7 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 
 func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, err
@@ -60,7 +60,7 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 
 func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, err
@@ -80,7 +80,7 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	return ms, nil
 }
 
-func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter, r *http.Request) bool {
+func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter) bool {
 	if router.h != nil {
 		ok, err := router.h.Check(mdto)
 		if err != nil {
@@ -107,7 +107,7 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Could not parse metric")
 			return
 		}
-		if !router.checkHash(*mdto, w, r) {
+		if !router.checkHash(*mdto, w) {
 			return
 		}
 		if !mdto.HasValue() {
@@ -142,7 +142,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			return
 		}
 		for _, m := range ms {
-			if !router.checkHash(m, w, r) {
+			if !router.checkHash(m, w) {
 				http.Error(w, "hash check failed", http.StatusBadRequest)
 				return
 			}
