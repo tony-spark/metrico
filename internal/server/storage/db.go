@@ -171,26 +171,22 @@ func (db MetricDВ) GetCounterByName(ctx context.Context, name string) (*models.
 }
 
 func (db MetricDВ) AddAndSaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
-	result, err := db.db.ExecContext(ctx,
+	row := db.db.QueryRowContext(ctx,
 		`INSERT INTO counters(name, value) VALUES ($1, $2)
 				ON CONFLICT (name) DO UPDATE 
-				SET value = counters.value + excluded.value`,
+				SET value = counters.value + excluded.value
+				RETURNING counters.name, counters.value`,
 		name, value)
 
+	var c models.CounterValue
+
+	err := row.Scan(&c.Name, &c.Value)
+
 	if err != nil {
 		return nil, err
 	}
 
-	if err = checkOneAffected(result); err != nil {
-		return nil, err
-	}
-
-	c, err := db.GetCounterByName(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
+	return &c, nil
 }
 
 func (db MetricDВ) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
