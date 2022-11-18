@@ -6,8 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 type Sha256Hmac struct {
@@ -43,9 +43,9 @@ func (s Sha256Hmac) Check(m dto.Metric) (bool, error) {
 func hashBin(m dto.Metric, key string) ([]byte, error) {
 	var repr string
 	switch m.MType {
-	case internal.COUNTER:
+	case model.COUNTER:
 		repr = fmt.Sprintf("%s:counter:%d", m.ID, *m.Delta)
-	case internal.GAUGE:
+	case model.GAUGE:
 		repr = fmt.Sprintf("%s:gauge:%f", m.ID, *m.Value)
 	default:
 		return nil, fmt.Errorf("coulnd not calculate hash for unknown metric type: %s", m.MType)

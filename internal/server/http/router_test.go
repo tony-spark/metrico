@@ -5,20 +5,29 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/storage"
+	"github.com/tony-spark/metrico/internal/server/web"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 func TestRouter(t *testing.T) {
-	r := NewRouter(storage.NewSingleValueGaugeRepository(), storage.NewSingleValueCounterRepository(), nil, nil, nil)
+	mr := storage.NewSingleValueRepository()
+	templates := web.NewEmbeddedTemplates()
+	r := NewRouter(mr, nil, nil, nil, templates)
 	ts := httptest.NewServer(r.R)
 	defer ts.Close()
 
+	t.Run("metrics page", func(t *testing.T) {
+		statusCode, body := testRequest(t, ts, "GET", "/")
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.True(t, strings.Contains(body, "<body>"))
+	})
 	t.Run("unknown metric type", func(t *testing.T) {
 		statusCode, _ := testRequest(t, ts, "POST", "/update/unknown/testCounter/100")
 		assert.Equal(t, http.StatusNotImplemented, statusCode)
@@ -97,7 +106,7 @@ func TestRouter(t *testing.T) {
 		v := float64(10.0)
 		mreq := &dto.Metric{
 			ID:    "UpdateTest1",
-			MType: internal.GAUGE,
+			MType: model.GAUGE,
 			Value: &v,
 		}
 		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)
@@ -108,7 +117,7 @@ func TestRouter(t *testing.T) {
 		v := int64(10)
 		mreq := &dto.Metric{
 			ID:    "UpdateTest2",
-			MType: internal.COUNTER,
+			MType: model.COUNTER,
 			Delta: &v,
 		}
 		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)

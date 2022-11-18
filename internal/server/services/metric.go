@@ -3,26 +3,24 @@ package services
 import (
 	"context"
 	"fmt"
-	"github.com/tony-spark/metrico/internal"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 )
 
 type MetricService struct {
-	gr         models.GaugeRepository
-	cr         models.CounterRepository
+	r          models.MetricRepository
 	postUpdate func()
 }
 
-func NewMetricService(gr models.GaugeRepository, cr models.CounterRepository, postUpdate func()) *MetricService {
+func NewMetricService(r models.MetricRepository, postUpdate func()) *MetricService {
 	return &MetricService{
-		gr:         gr,
-		cr:         cr,
+		r:          r,
 		postUpdate: postUpdate,
 	}
 }
 
 func (s MetricService) UpdateGauge(ctx context.Context, g models.GaugeValue) (gv *models.GaugeValue, err error) {
-	gv, err = s.gr.Save(ctx, g.Name, g.Value)
+	gv, err = s.r.SaveGauge(ctx, g.Name, g.Value)
 	if err == nil && s.postUpdate != nil {
 		s.postUpdate()
 	}
@@ -30,14 +28,14 @@ func (s MetricService) UpdateGauge(ctx context.Context, g models.GaugeValue) (gv
 }
 
 func (s MetricService) UpdateCounter(ctx context.Context, c models.CounterValue) (cv *models.CounterValue, err error) {
-	cv, err = s.cr.AddAndSave(ctx, c.Name, c.Value)
+	cv, err = s.r.AddAndSaveCounter(ctx, c.Name, c.Value)
 	if err == nil && s.postUpdate != nil {
 		s.postUpdate()
 	}
 	return
 }
 
-func (s MetricService) UpdateMetric(ctx context.Context, m models.Metric) (models.Metric, error) {
+func (s MetricService) UpdateMetric(ctx context.Context, m model.Metric) (model.Metric, error) {
 	switch m := m.(type) {
 	case models.GaugeValue:
 		return s.UpdateGauge(ctx, m)
@@ -51,13 +49,13 @@ func (s MetricService) UpdateMetric(ctx context.Context, m models.Metric) (model
 func (s MetricService) UpdateAll(ctx context.Context, gs []models.GaugeValue, cs []models.CounterValue) error {
 	// TODO do we need single db transaction here?
 	if len(gs) > 0 {
-		err := s.gr.SaveAll(ctx, gs)
+		err := s.r.SaveAllGauges(ctx, gs)
 		if err != nil {
 			return fmt.Errorf("could not save metris: %w", err)
 		}
 	}
 	if len(cs) > 0 {
-		err := s.cr.AddAndSaveAll(ctx, cs)
+		err := s.r.AddAndSaveAllCounters(ctx, cs)
 		if err != nil {
 			return fmt.Errorf("could not save metris: %w", err)
 		}
@@ -68,10 +66,10 @@ func (s MetricService) UpdateAll(ctx context.Context, gs []models.GaugeValue, cs
 	return nil
 }
 
-func (s MetricService) Get(ctx context.Context, name string, mType string) (models.Metric, error) {
+func (s MetricService) Get(ctx context.Context, name string, mType string) (model.Metric, error) {
 	switch mType {
-	case internal.GAUGE:
-		g, err := s.gr.GetByName(ctx, name)
+	case model.GAUGE:
+		g, err := s.r.GetGaugeByName(ctx, name)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve gauge value: %w", err)
 		}
@@ -79,8 +77,8 @@ func (s MetricService) Get(ctx context.Context, name string, mType string) (mode
 			return nil, nil
 		}
 		return g, nil
-	case internal.COUNTER:
-		c, err := s.cr.GetByName(ctx, name)
+	case model.COUNTER:
+		c, err := s.r.GetCounterByName(ctx, name)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve counter value: %w", err)
 		}
@@ -93,21 +91,10 @@ func (s MetricService) Get(ctx context.Context, name string, mType string) (mode
 	}
 }
 
-func (s MetricService) GetAll(ctx context.Context) ([]models.Metric, error) {
-	var ms []models.Metric
-	gs, err := s.gr.GetAll(ctx)
+func (s MetricService) GetAll(ctx context.Context) ([]model.Metric, error) {
+	ms, err := s.r.GetAll(ctx)
 	if err != nil {
-		return nil, err
-	}
-	cs, err := s.cr.GetAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, g := range gs {
-		ms = append(ms, *g)
-	}
-	for _, c := range cs {
-		ms = append(ms, *c)
+		return nil, fmt.Errorf("could not retrieve all metrics: %w", err)
 	}
 	return ms, nil
 }

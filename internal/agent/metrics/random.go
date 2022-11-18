@@ -1,7 +1,9 @@
 package metrics
 
 import (
+	"github.com/tony-spark/metrico/internal/model"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -12,6 +14,7 @@ const (
 type RandomMetricCollector struct {
 	metric *GaugeMetric
 	rand   *rand.Rand
+	mu     sync.RWMutex
 }
 
 func NewRandomMetricCollector() *RandomMetricCollector {
@@ -22,10 +25,16 @@ func NewRandomMetricCollector() *RandomMetricCollector {
 	return rmc
 }
 
-func (c *RandomMetricCollector) Metrics() []Metric {
-	return []Metric{c.metric}
+func (c *RandomMetricCollector) Metrics() []model.Metric {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return []model.Metric{*c.metric}
 }
 
 func (c *RandomMetricCollector) Update() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.metric.value = c.rand.Float64()
 }

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/hash"
+	"github.com/tony-spark/metrico/internal/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -27,7 +27,7 @@ func TestHTTPTransportGauge(t *testing.T) {
 			assert.Nil(t, err)
 			expected := dto.Metric{
 				ID:    name,
-				MType: internal.GAUGE,
+				MType: model.GAUGE,
 				Delta: nil,
 				Value: &value,
 			}
@@ -57,7 +57,7 @@ func TestHTTPTransportCounter(t *testing.T) {
 			assert.Nil(t, err)
 			expected := dto.Metric{
 				ID:    name,
-				MType: internal.COUNTER,
+				MType: model.COUNTER,
 				Delta: &value,
 				Value: nil,
 			}

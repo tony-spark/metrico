@@ -1,16 +1,10 @@
 package models
 
 import (
-	"github.com/tony-spark/metrico/internal"
+	"fmt"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 )
-
-type Metric interface {
-	ID() string
-	Type() string
-	V() interface{}
-	ToDTO() *dto.Metric
-}
 
 type GaugeValue struct {
 	Name  string
@@ -27,20 +21,15 @@ func (g GaugeValue) ID() string {
 }
 
 func (g GaugeValue) Type() string {
-	return internal.GAUGE
+	return model.GAUGE
 }
 
-func (g GaugeValue) V() interface{} {
+func (g GaugeValue) Val() interface{} {
 	return g.Value
 }
 
-func (g GaugeValue) ToDTO() *dto.Metric {
-	v := g.Value
-	return &dto.Metric{
-		ID:    g.Name,
-		MType: internal.GAUGE,
-		Value: &v,
-	}
+func (g GaugeValue) String() string {
+	return fmt.Sprint(g.Value)
 }
 
 func (c CounterValue) ID() string {
@@ -48,30 +37,25 @@ func (c CounterValue) ID() string {
 }
 
 func (c CounterValue) Type() string {
-	return internal.COUNTER
+	return model.COUNTER
 }
 
-func (c CounterValue) V() interface{} {
+func (c CounterValue) Val() interface{} {
 	return c.Value
 }
 
-func (c CounterValue) ToDTO() *dto.Metric {
-	d := c.Value
-	return &dto.Metric{
-		ID:    c.Name,
-		MType: internal.COUNTER,
-		Delta: &d,
-	}
+func (c CounterValue) String() string {
+	return fmt.Sprint(c.Value)
 }
 
-func FromDTO(mdto dto.Metric) Metric {
+func FromDTO(mdto dto.Metric) model.Metric {
 	switch mdto.MType {
-	case internal.GAUGE:
+	case model.GAUGE:
 		return GaugeValue{
 			Name:  mdto.ID,
 			Value: *mdto.Value,
 		}
-	case internal.COUNTER:
+	case model.COUNTER:
 		return CounterValue{
 			Name:  mdto.ID,
 			Value: *mdto.Delta,

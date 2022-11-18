@@ -2,19 +2,11 @@ package metrics
 
 import (
 	"fmt"
-	"github.com/tony-spark/metrico/internal"
-	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 )
 
-type Metric interface {
-	fmt.Stringer
-	Name() string
-	Type() string
-	ToDTO() *dto.Metric
-}
-
 type MetricCollector interface {
-	Metrics() []Metric
+	Metrics() []model.Metric
 	Update()
 }
 
@@ -32,40 +24,32 @@ func (g GaugeMetric) String() string {
 	return fmt.Sprint(g.value)
 }
 
-func (g GaugeMetric) Name() string {
+func (g GaugeMetric) ID() string {
 	return g.name
 }
 
 func (g GaugeMetric) Type() string {
-	return internal.GAUGE
+	return model.GAUGE
 }
 
-func (g GaugeMetric) ToDTO() *dto.Metric {
-	return &dto.Metric{
-		ID:    g.name,
-		MType: g.Type(),
-		Value: &g.value,
-	}
+func (g GaugeMetric) Val() interface{} {
+	return g.value
 }
 
 func (c CounterMetric) String() string {
 	return fmt.Sprint(c.value)
 }
 
-func (c CounterMetric) Name() string {
+func (c CounterMetric) ID() string {
 	return c.name
 }
 
 func (c CounterMetric) Type() string {
-	return internal.COUNTER
+	return model.COUNTER
 }
 
-func (c CounterMetric) ToDTO() *dto.Metric {
-	return &dto.Metric{
-		ID:    c.name,
-		MType: c.Type(),
-		Delta: &c.value,
-	}
+func (c CounterMetric) Val() interface{} {
+	return c.value
 }
 
 func NewGaugeMetric(name string, value float64) *GaugeMetric {

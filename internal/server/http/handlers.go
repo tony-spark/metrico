@@ -6,27 +6,15 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/assets"
-	"github.com/tony-spark/metrico/internal"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
-	"html/template"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"sort"
 	"strconv"
 )
-
-var metricsViewTemplate *template.Template
-
-func init() {
-	var err error
-	metricsViewTemplate, err = template.ParseFS(assets.EmbeddedAssets, "templates/metrics.html")
-	if err != nil {
-		log.Fatal().Msgf("Could not load template %v", err)
-	}
-}
 
 func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	ctype := r.Header.Get("Content-Type")
@@ -40,7 +28,7 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 
 func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, err
@@ -51,7 +39,7 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
 		return nil, err
 	}
-	if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+	if m.MType != model.GAUGE && m.MType != model.COUNTER {
 		http.Error(w, "Unknown metric type", http.StatusBadRequest)
 		return nil, fmt.Errorf("unknown metric type: %v", m.MType)
 	}
@@ -60,7 +48,7 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 
 func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, err
@@ -72,7 +60,7 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 		return nil, err
 	}
 	for _, m := range ms {
-		if m.MType != internal.GAUGE && m.MType != internal.COUNTER {
+		if m.MType != model.GAUGE && m.MType != model.COUNTER {
 			http.Error(w, "Unknown metric type", http.StatusBadRequest)
 			return nil, fmt.Errorf("unknown metric type: %v", m.MType)
 		}
@@ -80,7 +68,7 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	return ms, nil
 }
 
-func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter, r *http.Request) bool {
+func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter) bool {
 	if router.h != nil {
 		ok, err := router.h.Check(mdto)
 		if err != nil {
@@ -99,15 +87,15 @@ func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter, r *http.R
 func (router Router) UpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("Wrong content type")
 			return
 		}
 		mdto, err := readMetric(w, r)
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("Could not parse metric")
 			return
 		}
-		if !router.checkHash(*mdto, w, r) {
+		if !router.checkHash(*mdto, w) {
 			return
 		}
 		if !mdto.HasValue() {
@@ -117,11 +105,11 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 		mvalue := models.FromDTO(*mdto)
 		updated, err := router.ms.UpdateMetric(context.Background(), mvalue)
 		if err != nil {
-			log.Error().Err(err).Msgf("could not save metric: %s", err.Error())
+			log.Error().Err(err).Msg("could not save metric")
 			http.Error(w, "could not save metric", http.StatusInternalServerError)
 			return
 		}
-		b, err := json.Marshal(updated.ToDTO())
+		b, err := json.Marshal(dto.NewMetric(updated))
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
@@ -134,7 +122,7 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("Wrong content type")
 			return
 		}
 		ms, err := readMetrics(w, r)
@@ -142,7 +130,8 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			return
 		}
 		for _, m := range ms {
-			if !router.checkHash(m, w, r) {
+			if !router.checkHash(m, w) {
+				http.Error(w, "hash check failed", http.StatusBadRequest)
 				return
 			}
 		}
@@ -154,12 +143,12 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 				return
 			}
 			switch m.MType {
-			case internal.GAUGE:
+			case model.GAUGE:
 				gs = append(gs, models.GaugeValue{
 					Name:  m.ID,
 					Value: *m.Value,
 				})
-			case internal.COUNTER:
+			case model.COUNTER:
 				cs = append(cs, models.CounterValue{
 					Name:  m.ID,
 					Value: *m.Delta,
@@ -168,7 +157,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 		}
 		err = router.ms.UpdateAll(context.Background(), gs, cs)
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("Error saving metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 		}
 	}
@@ -177,17 +166,17 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 func (router Router) GetPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Err(err).Msg("Wrong content type")
 			return
 		}
 		mdto, err := readMetric(w, r)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			log.Error().Err(err).Msg("Could not parse metric")
 			return
 		}
 		mvalue, err := router.ms.Get(context.Background(), mdto.ID, mdto.MType)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			log.Error().Err(err).Msg("Could not get metric")
 			http.Error(w, "could not retrieve metric", http.StatusInternalServerError)
 			return
 		}
@@ -195,7 +184,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		mdto = mvalue.ToDTO()
+		mdto = dto.NewMetric(mvalue)
 		if router.h != nil {
 			mdto.Hash, err = router.h.Hash(*mdto)
 			if err != nil {
@@ -205,7 +194,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 		}
 		b, err := json.Marshal(mdto)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			log.Error().Err(err).Msg("error unmarshalling")
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
@@ -219,7 +208,7 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 		name := chi.URLParam(r, "name")
 		m, err := router.ms.Get(context.Background(), name, mType)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			log.Error().Err(err).Msg("error getting value")
 			http.Error(w, "error retrieving value", http.StatusInternalServerError)
 			return
 		}
@@ -227,7 +216,7 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		w.Write([]byte(fmt.Sprint(m.V())))
+		w.Write([]byte(fmt.Sprint(m.Val())))
 	}
 }
 
@@ -283,13 +272,13 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 
 		ms, err := router.ms.GetAll(context.Background())
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			log.Error().Err(err).Msg("error getting metrics")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 
 		}
 		for _, m := range ms {
-			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.V())})
+			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.Val())})
 		}
 
 		sort.Slice(data.Items, func(i, j int) bool {
@@ -298,9 +287,9 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
-		err = metricsViewTemplate.Execute(w, data)
+		err = router.templates.MetricsViewTemplate().Execute(w, data)
 		if err != nil {
-			log.Error().Err(err).Msg(err.Error())
+			log.Error().Err(err).Msg("Error rendering webpage")
 			http.Error(w, "Could not display metrics", http.StatusInternalServerError)
 			return
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"io"
 	"os"
@@ -14,11 +15,11 @@ type JSONFilePersistence struct {
 }
 
 type data struct {
-	Gauges   []*models.GaugeValue
-	Counters []*models.CounterValue
+	Gauges   []models.GaugeValue
+	Counters []models.CounterValue
 }
 
-func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {
+func (fp JSONFilePersistence) Load(ctx context.Context, r models.MetricRepository) error {
 	log.Printf("Loading from %v", fp.file.Name())
 	_, err := fp.file.Seek(0, 0)
 	if err != nil {
@@ -37,27 +38,41 @@ func (fp JSONFilePersistence) Load(ctx context.Context, gr models.GaugeRepositor
 		return err
 	}
 	for _, g := range d.Gauges {
-		gr.Save(ctx, g.Name, g.Value)
+		r.SaveGauge(ctx, g.Name, g.Value)
 		log.Debug().Msgf("Loaded gauge %v = %v", g.Name, g.Value)
 	}
 	for _, c := range d.Counters {
-		cr.Save(ctx, c.Name, c.Value)
+		r.SaveCounter(ctx, c.Name, c.Value)
 		log.Debug().Msgf("Loaded counter %v = %v", c.Name, c.Value)
 	}
 	return nil
 }
 
-func (fp JSONFilePersistence) Save(ctx context.Context, gr models.GaugeRepository, cr models.CounterRepository) error {
+func (fp JSONFilePersistence) Save(ctx context.Context, r models.MetricRepository) error {
 	// TODO make save operation atomic
 	log.Debug().Msgf("Saving metrics to %v", fp.file.Name())
-	gauges, err := gr.GetAll(ctx)
+	ms, err := r.GetAll(ctx)
 	if err != nil {
 		return err
 	}
-	counters, err := cr.GetAll(ctx)
-	if err != nil {
-		return err
+	gauges := make([]models.GaugeValue, 0)
+	counters := make([]models.CounterValue, 0)
+
+	for _, m := range ms {
+		switch m.Type() {
+		case model.GAUGE:
+			gauges = append(gauges, models.GaugeValue{
+				Name:  m.ID(),
+				Value: m.Val().(float64),
+			})
+		case model.COUNTER:
+			counters = append(counters, models.CounterValue{
+				Name:  m.ID(),
+				Value: m.Val().(int64),
+			})
+		}
 	}
+
 	d := data{
 		Gauges:   gauges,
 		Counters: counters,

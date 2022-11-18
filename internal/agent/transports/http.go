@@ -1,11 +1,12 @@
 package transports
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 	"net/http"
 	"time"
 )
@@ -37,18 +38,22 @@ func NewHTTPTransportHashed(baseURL string, hasher dto.Hasher) *HTTPTransport {
 	return t
 }
 
-func (h HTTPTransport) SendMetric(metric metrics.Metric) error {
+func (h HTTPTransport) SendMetric(metric model.Metric) error {
 	return h.sendJSON(metric)
 }
 
-func (h HTTPTransport) SendMetrics(mx []metrics.Metric) error {
-	return h.sendJSONBatch(mx)
+func (h HTTPTransport) SendMetrics(mx []model.Metric) error {
+	return h.sendJSONBatch(context.Background(), mx)
 }
 
-func (h HTTPTransport) send(metric metrics.Metric) error {
+func (h HTTPTransport) SendMetricsWithContext(ctx context.Context, mx []model.Metric) error {
+	return h.sendJSONBatch(ctx, mx)
+}
+
+func (h HTTPTransport) send(metric model.Metric) error {
 	req := h.client.R().
 		SetPathParam("type", metric.Type()).
-		SetPathParam("name", metric.Name()).
+		SetPathParam("name", metric.ID()).
 		SetPathParam("value", metric.String()).
 		SetHeader("Content-Type", "text/plain")
 	resp, err := req.Post(endpointSend)
@@ -58,12 +63,12 @@ func (h HTTPTransport) send(metric metrics.Metric) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
-	log.Info().Msgf("sent %v (%v) = %v", metric.Name(), metric.Type(), metric.String())
+	log.Info().Msgf("sent %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
 	return nil
 }
 
-func (h HTTPTransport) createDTO(metric metrics.Metric) (*dto.Metric, error) {
-	d := metric.ToDTO()
+func (h HTTPTransport) createDTO(metric model.Metric) (*dto.Metric, error) {
+	d := dto.NewMetric(metric)
 	if h.hasher != nil {
 		var err error
 		d.Hash, err = h.hasher.Hash(*d)
@@ -74,7 +79,7 @@ func (h HTTPTransport) createDTO(metric metrics.Metric) (*dto.Metric, error) {
 	return d, nil
 }
 
-func (h HTTPTransport) sendJSON(metric metrics.Metric) error {
+func (h HTTPTransport) sendJSON(metric model.Metric) error {
 	d, err := h.createDTO(metric)
 	if err != nil {
 		return err
@@ -88,11 +93,11 @@ func (h HTTPTransport) sendJSON(metric metrics.Metric) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
-	log.Info().Msgf("sent %v (%v) = %v", metric.Name(), metric.Type(), metric.String())
+	log.Info().Msgf("sent %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
 	return nil
 }
 
-func (h HTTPTransport) sendJSONBatch(mx []metrics.Metric) error {
+func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) error {
 	var dtos []dto.Metric
 	for _, m := range mx {
 		mdto, err := h.createDTO(m)
@@ -102,6 +107,7 @@ func (h HTTPTransport) sendJSONBatch(mx []metrics.Metric) error {
 		dtos = append(dtos, *mdto)
 	}
 	req := h.client.R().
+		SetContext(ctx).
 		SetBody(dtos)
 	resp, err := req.Post(endpointSendJSONBatch)
 	if err != nil {
@@ -111,7 +117,7 @@ func (h HTTPTransport) sendJSONBatch(mx []metrics.Metric) error {
 		return fmt.Errorf("send error: metrics not accepted %v response code: %v", req.URL, resp.StatusCode())
 	}
 	for _, metric := range mx {
-		log.Info().Msgf("sent in batch %v (%v) = %v\n", metric.Name(), metric.Type(), metric.String())
+		log.Info().Msgf("sent in batch %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
 	}
 	return nil
 }
