@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog/log"
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
+	"github.com/tony-spark/metrico/internal/analytics"
 	"os"
 	"os/signal"
 	"strings"
@@ -38,4 +39,8 @@ func main() {
 	<-terminateSignal
 	cancel()
 	log.Info().Msg("Application interrupted via system signal")
+
+	if config.Config.ProfileMemory {
+		err = analytics.WriteMemoryProfile("memory-agent.profile")
+	}
 }

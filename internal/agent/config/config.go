@@ -16,6 +16,7 @@ type config struct {
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	Key            string        `env:"KEY"`
+	ProfileMemory  bool          `env:"PROFILE_MEMORY"`
 }
 
 func Parse() error {
@@ -23,6 +24,7 @@ func Parse() error {
 	flag.DurationVar(&Config.ReportInterval, "r", 10*time.Second, "report interval")
 	flag.DurationVar(&Config.PollInterval, "p", 2*time.Second, "poll interval")
 	flag.StringVar(&Config.Key, "k", "", "hash key")
+	flag.BoolVar(&Config.ProfileMemory, "memprof", false, "create memory profile")
 	flag.Parse()
 
 	err := env.Parse(&Config)
