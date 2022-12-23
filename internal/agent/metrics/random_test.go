@@ -10,8 +10,9 @@ func TestRandomMetricCollector(t *testing.T) {
 	mc := NewRandomMetricCollector()
 
 	mc.Update()
-	t.Run("has metrics", func(t *testing.T) {
+	t.Run("has one metric", func(t *testing.T) {
 		assert.NotEmpty(t, mc.Metrics())
+		assert.True(t, len(mc.Metrics()) == 1)
 	})
 	t.Run("metrics not empty", func(t *testing.T) {
 		for _, m := range mc.Metrics() {

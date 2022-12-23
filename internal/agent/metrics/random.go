@@ -12,9 +12,10 @@ const (
 )
 
 type RandomMetricCollector struct {
-	metric *GaugeMetric
-	rand   *rand.Rand
-	mu     sync.RWMutex
+	metric  *GaugeMetric
+	metrics []model.Metric
+	rand    *rand.Rand
+	mu      sync.RWMutex
 }
 
 func NewRandomMetricCollector() *RandomMetricCollector {
@@ -22,6 +23,7 @@ func NewRandomMetricCollector() *RandomMetricCollector {
 		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	rmc.metric = NewGaugeMetric(metricName, rmc.rand.Float64())
+	rmc.metrics = []model.Metric{rmc.metric}
 	return rmc
 }
 
@@ -29,7 +31,7 @@ func (c *RandomMetricCollector) Metrics() []model.Metric {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return []model.Metric{*c.metric}
+	return c.metrics
 }
 
 func (c *RandomMetricCollector) Update() {
