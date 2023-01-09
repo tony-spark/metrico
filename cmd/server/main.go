@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/analytics"
-	"github.com/tony-spark/metrico/internal/server"
-	"github.com/tony-spark/metrico/internal/server/config"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/server"
+	"github.com/tony-spark/metrico/internal/server/config"
 )
 
 func main() {
@@ -42,8 +42,4 @@ func main() {
 	<-terminateSignal
 	cancel()
 	log.Info().Msg("Server interrupted")
-
-	if config.Config.ProfileMemory {
-		err = analytics.WriteMemoryProfile("memory-server.profile")
-	}
 }

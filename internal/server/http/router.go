@@ -36,6 +36,7 @@ func NewRouter(repo models.MetricRepository, postUpdateFn func(), h dto.Hasher, 
 	r.Use(httplog.RequestLogger(log.Logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
+	r.Mount("/debug", middleware.Profiler())
 
 	r.Get("/", router.MetricsViewPageHandler())
 	r.Route("/update", func(r chi.Router) {
