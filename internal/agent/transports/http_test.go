@@ -2,16 +2,18 @@ package transports
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/dto"
-	"github.com/tony-spark/metrico/internal/hash"
-	"github.com/tony-spark/metrico/internal/model"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/hash"
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 func TestHTTPTransportGauge(t *testing.T) {

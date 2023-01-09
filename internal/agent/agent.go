@@ -3,13 +3,15 @@ package agent
 import (
 	"context"
 	"errors"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/agent/transports"
-	"github.com/tony-spark/metrico/internal/hash"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/hash"
 )
 
 type MetricsAgent struct {

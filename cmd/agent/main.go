@@ -12,6 +12,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
 )

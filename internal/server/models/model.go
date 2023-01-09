@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 )

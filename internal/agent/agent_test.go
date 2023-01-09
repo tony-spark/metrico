@@ -2,10 +2,11 @@ package agent
 
 import (
 	"context"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/agent/transports"
 	"testing"
 	"time"
+
+	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/agent/transports"
 )
 
 func TestAgentRace(t *testing.T) {

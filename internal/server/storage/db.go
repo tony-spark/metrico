@@ -5,14 +5,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
+
 	dbdir "github.com/tony-spark/metrico/db"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
-	"time"
 )
 
 type PgDatabaseManager struct {

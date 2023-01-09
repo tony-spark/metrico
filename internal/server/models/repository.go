@@ -2,8 +2,9 @@ package models
 
 import (
 	"context"
-	"github.com/tony-spark/metrico/internal/model"
 	"io"
+
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 type MetricRepository interface {

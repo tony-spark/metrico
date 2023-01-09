@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 )

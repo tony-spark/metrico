@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/hash"
 	router "github.com/tony-spark/metrico/internal/server/http"
@@ -9,8 +12,6 @@ import (
 	"github.com/tony-spark/metrico/internal/server/services"
 	"github.com/tony-spark/metrico/internal/server/storage"
 	"github.com/tony-spark/metrico/internal/server/web"
-	"net/http"
-	"time"
 )
 
 type Server struct {

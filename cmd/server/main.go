@@ -9,6 +9,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
 	"github.com/tony-spark/metrico/internal/server"
 	"github.com/tony-spark/metrico/internal/server/config"
 )

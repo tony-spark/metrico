@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/dto"
-	"github.com/tony-spark/metrico/internal/model"
-	"github.com/tony-spark/metrico/internal/server/models"
 	"io"
 	"mime"
 	"net/http"
 	"sort"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
+	"github.com/tony-spark/metrico/internal/server/models"
 )
 
 func checkContentType(w http.ResponseWriter, r *http.Request) error {

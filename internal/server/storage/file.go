@@ -3,11 +3,13 @@ package storage
 import (
 	"context"
 	"encoding/json"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/model"
-	"github.com/tony-spark/metrico/internal/server/models"
 	"io"
 	"os"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/model"
+	"github.com/tony-spark/metrico/internal/server/models"
 )
 
 type JSONFilePersistence struct {

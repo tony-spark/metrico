@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	"github.com/tony-spark/metrico/internal/model"
 	"time"
+
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 type DelayedCollectorProxy struct {

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 )

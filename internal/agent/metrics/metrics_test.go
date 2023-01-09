@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	"github.com/rs/zerolog"
 	"testing"
+
+	"github.com/rs/zerolog"
 )
 
 func BenchmarkAllCollectors(b *testing.B) {

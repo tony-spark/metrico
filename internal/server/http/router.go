@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog"
 	"github.com/rs/zerolog/log"
+
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"

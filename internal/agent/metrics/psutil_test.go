@@ -1,9 +1,11 @@
 package metrics
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/tony-spark/metrico/internal/model"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 func TestPsUtilMetricsCollector(t *testing.T) {

@@ -3,17 +3,19 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tony-spark/metrico/internal/dto"
-	"github.com/tony-spark/metrico/internal/model"
-	"github.com/tony-spark/metrico/internal/server/storage"
-	"github.com/tony-spark/metrico/internal/server/web"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
+	"github.com/tony-spark/metrico/internal/server/storage"
+	"github.com/tony-spark/metrico/internal/server/web"
 )
 
 func TestRouter(t *testing.T) {

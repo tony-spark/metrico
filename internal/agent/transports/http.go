@@ -3,12 +3,14 @@ package transports
 import (
 	"context"
 	"fmt"
-	"github.com/go-resty/resty/v2"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/dto"
-	"github.com/tony-spark/metrico/internal/model"
 	"net/http"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 const (

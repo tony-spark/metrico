@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+
 	"github.com/tony-spark/metrico/internal/model"
 )
 
