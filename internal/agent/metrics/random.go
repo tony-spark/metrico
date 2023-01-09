@@ -38,5 +38,5 @@ func (c *RandomMetricCollector) Update() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.metric.value = c.rand.Float64()
+	c.metric = NewGaugeMetric(metricName, c.rand.Float64())
 }
