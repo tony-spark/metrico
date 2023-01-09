@@ -18,7 +18,6 @@ type config struct {
 	Restore       bool          `env:"RESTORE"`
 	Key           string        `env:"KEY"`
 	DSN           string        `env:"DATABASE_DSN"`
-	ProfileMemory bool          `env:"PROFILE_MEMORY"`
 }
 
 func Parse() error {
@@ -28,7 +27,6 @@ func Parse() error {
 	flag.BoolVar(&Config.Restore, "r", true, "whether to load metric from file on start")
 	flag.StringVar(&Config.Key, "k", "", "hash key")
 	flag.StringVar(&Config.DSN, "d", "", "database connection string")
-	flag.BoolVar(&Config.ProfileMemory, "memprof", false, "create memory profile")
 	flag.Parse()
 
 	err := env.Parse(&Config)
