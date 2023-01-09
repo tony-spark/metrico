@@ -17,10 +17,10 @@ func BenchmarkAllCollectors(b *testing.B) {
 			for _, mc := range cs {
 				mc.Update()
 				for _, m := range mc.Metrics() {
-					m.ID()
-					m.Type()
-					m.String()
-					m.Val()
+					_ = m.ID()
+					_ = m.Type()
+					_ = m.String()
+					_ = m.Val()
 				}
 			}
 		}
