@@ -33,5 +33,5 @@ jobs:
         uses: actions/checkout@v2
       - name: Calc coverage
         run: |
-          go test -v -covermode=count -coverprofile=count.out ./...
+          go test -covermode=count -coverprofile=count.out ./...
           go tool cover -func=count.out
