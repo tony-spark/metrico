@@ -277,7 +277,6 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("error getting metrics")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-
 		}
 		for _, m := range ms {
 			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.Val())})

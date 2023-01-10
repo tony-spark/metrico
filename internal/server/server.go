@@ -79,6 +79,8 @@ func WithFileStore(filename string, storeInterval time.Duration, restore bool) O
 }
 
 // Run starts a server
+//
+// Note that Run blocks until given context is done or error occurred
 func (s Server) Run(ctx context.Context) error {
 	var r models.MetricRepository
 	var dbm models.DBManager
