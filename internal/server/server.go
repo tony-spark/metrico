@@ -1,3 +1,4 @@
+// Package server contains implementation of metrics server - application to receive and store metrics
 package server
 
 import (
@@ -14,6 +15,7 @@ import (
 	"github.com/tony-spark/metrico/internal/server/web"
 )
 
+// Server represents server application
 type Server struct {
 	listenAddress string
 	key           string
@@ -23,8 +25,10 @@ type Server struct {
 	restore       bool
 }
 
+// Option represents option function for server configuration
 type Option func(s *Server)
 
+// New creates server with given options
 func New(options ...Option) Server {
 	s := Server{
 		listenAddress: "127.0.0.1:8080",
@@ -40,24 +44,32 @@ func New(options ...Option) Server {
 	return s
 }
 
+// WithHTTPServer configures server to receive metrics via HTTP
 func WithHTTPServer(listenAddress string) Option {
 	return func(s *Server) {
 		s.listenAddress = listenAddress
 	}
 }
 
+// WithHashKey configures server to check hash of received messages
 func WithHashKey(key string) Option {
 	return func(s *Server) {
 		s.key = key
 	}
 }
 
+// WithDB configures server to use database as a metrics storage
 func WithDB(dsn string) Option {
 	return func(s *Server) {
 		s.dsn = dsn
 	}
 }
 
+// WithFileStore configures server to store metrics in file
+//
+// # If storeInterval is not specified (0), metrics will be saved on each update
+//
+// If restore is true, metrics will be loaded
 func WithFileStore(filename string, storeInterval time.Duration, restore bool) Option {
 	return func(s *Server) {
 		s.storeFilename = filename

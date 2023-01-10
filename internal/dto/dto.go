@@ -1,22 +1,28 @@
+// Package dto provides main interfaces and type for metric sending and receiving (e.g. DTOs)
 package dto
 
 import (
 	"github.com/tony-spark/metrico/internal/model"
 )
 
+// Metric is a DTO with metric's data
 type Metric struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-	Hash  string   `json:"hash,omitempty"`  // значение хеш-функции
+	ID    string   `json:"id"`              // metric's ID
+	MType string   `json:"type"`            // type of metric ("gauge" or "counter)
+	Delta *int64   `json:"delta,omitempty"` // value of counter metric
+	Value *float64 `json:"value,omitempty"` // value of gauge metric
+	Hash  string   `json:"hash,omitempty"`  // object hash
 }
 
+// Hasher implementation is used to calculate and check DTO's hash
 type Hasher interface {
+	// Hash returns string (hex) representation of hash or error if hash can't be calculated for given Metric (e.g. inconsistent object)
 	Hash(m Metric) (string, error)
+	// Check returns hash check result or error if hash can't be checked for given Metric (e.g. inconsistent object)
 	Check(m Metric) (bool, error)
 }
 
+// HasValue returns whether Metric is filled with value, depending on it's type
 func (m Metric) HasValue() bool {
 	switch m.MType {
 	case model.GAUGE:
@@ -27,6 +33,7 @@ func (m Metric) HasValue() bool {
 	return false
 }
 
+// NewMetric creates a DTO from model object
 func NewMetric(m model.Metric) *Metric {
 	mdto := &Metric{
 		ID:    m.ID(),
