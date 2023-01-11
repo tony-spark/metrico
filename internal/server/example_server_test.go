@@ -48,10 +48,11 @@ func Example() {
 				log.Fatal().Err(err).Msg("error while configuring request")
 			}
 			req.Header.Set("Content-Type", "application/json")
-			_, err = http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error during request")
 			}
+			resp.Body.Close()
 		}
 		// example of sending metrics in batch
 		{
@@ -72,10 +73,11 @@ func Example() {
 				log.Fatal().Err(err).Msg("error while configuring request")
 			}
 			req.Header.Set("Content-Type", "application/json")
-			_, err = http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error during request")
 			}
+			resp.Body.Close()
 		}
 		// example of getting metrics value
 		{
@@ -94,11 +96,12 @@ func Example() {
 			if err != nil {
 				log.Fatal().Err(err).Msg("error during request")
 			}
-			defer resp.Body.Close()
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Fatal().Err(err).Msg("could not read response body")
 			}
+			resp.Body.Close()
+
 			log.Info().Msg(string(body))
 		}
 	}()
