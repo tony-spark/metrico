@@ -7,11 +7,11 @@ import (
 
 // Metric is a DTO with metric's data
 type Metric struct {
-	ID    string   `json:"id"`              // metric's ID
-	MType string   `json:"type"`            // type of metric ("gauge" or "counter)
-	Delta *int64   `json:"delta,omitempty"` // value of counter metric
-	Value *float64 `json:"value,omitempty"` // value of gauge metric
-	Hash  string   `json:"hash,omitempty"`  // object hash
+	ID    string   `json:"id"`                          // metric's ID
+	MType string   `json:"type" enums:"gauge,counter"`  // type of metric ("gauge" or "counter)
+	Delta *int64   `json:"delta,omitempty"`             // value of counter metric
+	Value *float64 `json:"value,omitempty"`             // value of gauge metric
+	Hash  string   `json:"hash,omitempty" format:"HEX"` // object hash
 }
 
 // Hasher implementation is used to calculate and check DTO's hash

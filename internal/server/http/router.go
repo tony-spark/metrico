@@ -13,6 +13,10 @@ import (
 	"github.com/tony-spark/metrico/internal/server/web"
 )
 
+// @Title Metric API
+// @Description Metric storage
+// @Version 1.0
+
 type Router struct {
 	dbm       models.DBManager
 	ms        *services.MetricService
