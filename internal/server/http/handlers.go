@@ -162,6 +162,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Error saving metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 		}
+		w.Write([]byte(""))
 	}
 }
 
