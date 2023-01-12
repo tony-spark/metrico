@@ -14,6 +14,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.10
 	github.com/stretchr/testify v1.8.1
 	github.com/swaggo/swag v1.8.9
+	github.com/tomarrell/wrapcheck/v2 v2.7.0
 	golang.org/x/tools v0.1.12
 	honnef.co/go/tools v0.3.0
 )
@@ -28,6 +29,7 @@ require (
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
+	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

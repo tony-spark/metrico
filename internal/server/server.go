@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -134,6 +135,7 @@ func (s Server) Run(ctx context.Context) error {
 
 	templates := web.NewEmbeddedTemplates()
 
-	return http.ListenAndServe(s.listenAddress,
+	err = http.ListenAndServe(s.listenAddress,
 		router.NewRouter(r, postUpdateFn, h, dbm, templates).R)
+	return fmt.Errorf("error running http server: %w", err)
 }

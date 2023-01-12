@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/kisielk/errcheck/errcheck"
+	"github.com/tomarrell/wrapcheck/v2/wrapcheck"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/assign"
@@ -73,6 +74,12 @@ func main() {
 	)
 
 	checks = append(checks, errcheck.Analyzer)
+
+	wConfig := wrapcheck.NewDefaultConfig()
+	wConfig.IgnoreSigRegexps = append(wConfig.IgnoreSigRegexps,
+		`.*github.com/tony-spark/metrico/internal/.*`, // ignore error wrapping in internal packages
+	)
+	checks = append(checks, wrapcheck.NewAnalyzer(wConfig))
 
 	multichecker.Main(
 		checks...,

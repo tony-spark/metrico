@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 
@@ -25,19 +26,19 @@ func (fp JSONFilePersistence) Load(ctx context.Context, r models.MetricRepositor
 	log.Printf("Loading from %v", fp.file.Name())
 	_, err := fp.file.Seek(0, 0)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to seek in persistense file: %w", err)
 	}
 	bs, err := io.ReadAll(fp.file)
 	if len(bs) == 0 && err == nil {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read from persistense file: %w", err)
 	}
 	var d data
 	err = json.Unmarshal(bs, &d)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse json in persistense file: %w", err)
 	}
 	for _, g := range d.Gauges {
 		log.Debug().Msgf("Loaded gauge %v = %v", g.Name, g.Value)
@@ -87,27 +88,31 @@ func (fp JSONFilePersistence) Save(ctx context.Context, r models.MetricRepositor
 	}
 	bs, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create json to save it to persistense file: %w", err)
 	}
 	_, err = fp.file.Seek(0, 0)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to rewrite persistense file: %w", err)
 	}
 	_, err = fp.file.Write(bs)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write persistense file: %w", err)
 	}
 	return nil
 }
 
 func (fp JSONFilePersistence) Close() error {
-	return fp.file.Close()
+	err := fp.file.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close persistense file: %w", err)
+	}
+	return nil
 }
 
 func NewJSONFilePersistence(filename string) (*JSONFilePersistence, error) {
 	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open persistence file: %w", err)
 	}
 	return &JSONFilePersistence{
 		file: f,

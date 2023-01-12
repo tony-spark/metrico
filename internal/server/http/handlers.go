@@ -23,7 +23,7 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	t, _, err := mime.ParseMediaType(ctype)
 	if err != nil || t != "application/json" {
 		http.Error(w, "Only application/json supported", http.StatusUnsupportedMediaType)
-		return err
+		return fmt.Errorf("could not check content type: %w", err)
 	}
 	return nil
 }
@@ -33,13 +33,13 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metric from request: %w", err)
 	}
 	var m dto.Metric
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metric from request: %w", err)
 	}
 	if m.MType != model.GAUGE && m.MType != model.COUNTER {
 		http.Error(w, "Unknown metric type", http.StatusBadRequest)
@@ -53,13 +53,13 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metrics from request: %w", err)
 	}
 	var ms []dto.Metric
 	err = json.Unmarshal(body, &ms)
 	if err != nil {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metrics from request: %w", err)
 	}
 	for _, m := range ms {
 		if m.MType != model.GAUGE && m.MType != model.COUNTER {
