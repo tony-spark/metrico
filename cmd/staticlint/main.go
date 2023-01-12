@@ -5,6 +5,7 @@ import (
 
 	"github.com/kisielk/errcheck/errcheck"
 	"github.com/tomarrell/wrapcheck/v2/wrapcheck"
+	"github.com/tony-spark/metrico/internal/staticlint/osexit"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/assign"
@@ -80,6 +81,8 @@ func main() {
 		`.*github.com/tony-spark/metrico/internal/.*`, // ignore error wrapping in internal packages
 	)
 	checks = append(checks, wrapcheck.NewAnalyzer(wConfig))
+
+	checks = append(checks, osexit.Analyzer)
 
 	multichecker.Main(
 		checks...,
