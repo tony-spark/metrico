@@ -1,6 +1,9 @@
 package main
 
 import (
+	"strings"
+
+	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/assign"
 	"golang.org/x/tools/go/analysis/passes/bools"
@@ -25,10 +28,11 @@ import (
 	"golang.org/x/tools/go/analysis/passes/unreachable"
 	"golang.org/x/tools/go/analysis/passes/unusedresult"
 	"golang.org/x/tools/go/analysis/passes/unusedwrite"
+	"honnef.co/go/tools/staticcheck"
 )
 
 func main() {
-	multichecker.Main(
+	var checks = []*analysis.Analyzer{
 		assign.Analyzer,
 		bools.Analyzer,
 		composite.Analyzer,
@@ -52,5 +56,15 @@ func main() {
 		unreachable.Analyzer,
 		unusedresult.Analyzer,
 		unusedwrite.Analyzer,
+	}
+
+	for _, a := range staticcheck.Analyzers {
+		if strings.HasPrefix(a.Analyzer.Name, "SA") || strings.HasPrefix(a.Analyzer.Name, "S1") {
+			checks = append(checks, a.Analyzer)
+		}
+	}
+
+	multichecker.Main(
+		checks...,
 	)
 }
