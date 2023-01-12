@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/hash"
 	router "github.com/tony-spark/metrico/internal/server/http"
@@ -92,7 +93,12 @@ func (s Server) Run(ctx context.Context) error {
 			return err
 		}
 		r = dbm.MetricRepository()
-		defer dbm.Close()
+		defer func() {
+			err = dbm.Close()
+			if err != nil {
+				log.Error().Err(err).Msg("error closing database manager")
+			}
+		}()
 	} else {
 		var store models.RepositoryPersistence
 		r = storage.NewSingleValueRepository()
@@ -101,8 +107,14 @@ func (s Server) Run(ctx context.Context) error {
 			return err
 		}
 		defer func() {
-			store.Save(ctx, r)
-			store.Close()
+			err = store.Save(ctx, r)
+			if err != nil {
+				log.Error().Err(err).Msg("error saving metrics store")
+			}
+			errc := store.Close()
+			if errc != nil {
+				log.Error().Err(err).Msg("error closing store")
+			}
 		}()
 		if s.restore {
 			err = store.Load(ctx, r)

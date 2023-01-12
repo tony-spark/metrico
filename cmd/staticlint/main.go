@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/assign"
@@ -63,6 +64,15 @@ func main() {
 			checks = append(checks, a.Analyzer)
 		}
 	}
+
+	errcheck.DefaultExcludedSymbols = append(errcheck.DefaultExcludedSymbols,
+		"(io.ReadCloser).Close",
+		"(*database/sql.Tx).Rollback",
+		"(*database/sql.Stmt).Close",
+		"(*database/sql.Rows).Close",
+	)
+
+	checks = append(checks, errcheck.Analyzer)
 
 	multichecker.Main(
 		checks...,

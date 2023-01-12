@@ -124,7 +124,10 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(b)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 
@@ -175,7 +178,10 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Error saving metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 		}
-		w.Write([]byte(""))
+		_, err = w.Write([]byte(""))
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 
@@ -222,7 +228,10 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(b)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 
@@ -245,7 +254,10 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		w.Write([]byte(fmt.Sprint(m.Val())))
+		_, err = w.Write([]byte(fmt.Sprint(m.Val())))
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 

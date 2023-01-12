@@ -1,0 +1,4 @@
+(io.ReadCloser).Close
+(*database/sql.Tx).Rollback
+(*database/sql.Stmt).Close
+(*database/sql.Rows).Close

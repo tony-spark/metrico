@@ -17,7 +17,12 @@ import (
 func Example() {
 	tempf, err := os.CreateTemp(os.TempDir(), "metrico-server-example")
 	if err != nil {
-		defer tempf.Close()
+		defer func() {
+			err := tempf.Close()
+			if err != nil {
+				log.Fatal().Err(err).Msg("error closing temporary file")
+			}
+		}()
 	}
 	s := server.New(
 		server.WithFileStore(tempf.Name(), 3*time.Second, false),

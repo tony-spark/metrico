@@ -40,12 +40,18 @@ func (fp JSONFilePersistence) Load(ctx context.Context, r models.MetricRepositor
 		return err
 	}
 	for _, g := range d.Gauges {
-		r.SaveGauge(ctx, g.Name, g.Value)
 		log.Debug().Msgf("Loaded gauge %v = %v", g.Name, g.Value)
+		_, err := r.SaveGauge(ctx, g.Name, g.Value)
+		if err != nil {
+			log.Error().Err(err).Msg("error saving gauge to repository")
+		}
 	}
 	for _, c := range d.Counters {
-		r.SaveCounter(ctx, c.Name, c.Value)
 		log.Debug().Msgf("Loaded counter %v = %v", c.Name, c.Value)
+		_, err := r.SaveCounter(ctx, c.Name, c.Value)
+		if err != nil {
+			log.Error().Err(err).Msg("error saving counter to repository")
+		}
 	}
 	return nil
 }
