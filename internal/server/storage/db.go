@@ -143,7 +143,7 @@ func (db MetricDВ) getAllGauges(ctx context.Context) ([]models.GaugeValue, erro
 
 	for rows.Next() {
 		var g models.GaugeValue
-		err := rows.Scan(&g.Name, &g.Value)
+		err = rows.Scan(&g.Name, &g.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -250,7 +250,7 @@ func (db MetricDВ) getAllCounters(ctx context.Context) ([]models.CounterValue, 
 
 	for rows.Next() {
 		var g models.CounterValue
-		err := rows.Scan(&g.Name, &g.Value)
+		err = rows.Scan(&g.Name, &g.Value)
 		if err != nil {
 			return nil, err
 		}
