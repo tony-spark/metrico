@@ -37,6 +37,7 @@ func TestMemoryMetricCollector(t *testing.T) {
 
 func BenchmarkMemoryMetricCollector(b *testing.B) {
 	mc := NewMemoryMetricCollector()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mc.Update()
 		mc.Metrics()

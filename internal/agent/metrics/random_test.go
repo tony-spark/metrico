@@ -38,6 +38,7 @@ func TestRandomMetricCollector(t *testing.T) {
 
 func BenchmarkRandomMetricCollector(b *testing.B) {
 	mc := NewRandomMetricCollector()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mc.Update()
 		mc.Metrics()
