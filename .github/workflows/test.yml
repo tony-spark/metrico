@@ -36,7 +36,7 @@ jobs:
           go test -covermode=count -coverprofile=count.out ./...
           go tool cover -func=count.out
       - name: Send coverage
-      - uses: shogo82148/actions-goveralls@v1
+        uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: count.out
 
