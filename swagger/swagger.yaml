@@ -121,7 +121,7 @@ paths:
             $ref: '#/definitions/dto.Metric'
       summary: Get metric value
   /value/{metric_type}/{metric_name}:
-    post:
+    get:
       parameters:
       - description: Metric type
         in: path

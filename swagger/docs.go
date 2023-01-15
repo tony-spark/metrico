@@ -160,7 +160,7 @@ const docTemplate = `{
             }
         },
         "/value/{metric_type}/{metric_name}": {
-            "post": {
+            "get": {
                 "summary": "Get metric value",
                 "parameters": [
                     {

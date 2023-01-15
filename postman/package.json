@@ -1,0 +1,17 @@
+{
+  "name": "postman",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@apideck/postman-to-k6": "^1.8.7"
+  },
+  "dependencies": {
+    "prettier": "^2.8.3"
+  }
+}

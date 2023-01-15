@@ -37,6 +37,7 @@ func TestPsUtilMetricsCollector(t *testing.T) {
 
 func BenchmarkPsUtilMetricsCollector(b *testing.B) {
 	mc := NewPsUtilMetricsCollector()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mc.Update()
 		mc.Metrics()

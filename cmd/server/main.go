@@ -1,3 +1,4 @@
+// Package main contains entrypoint for server application
 package main
 
 import (

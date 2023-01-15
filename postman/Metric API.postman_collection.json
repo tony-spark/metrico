@@ -1,0 +1,377 @@
+{
+	"info": {
+		"_postman_id": "89f91843-b5f5-4508-979b-6e5770781740",
+		"name": "Metric API",
+		"description": "Metric storage",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "update",
+			"item": [
+				{
+					"name": "Update metric value",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\" : \"GaugeExample\",\n    \"type\" : \"gauge\",\n    \"value\" : 1.23\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/update",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"update"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/update",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"update"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"delta\": -68467173,\n  \"hash\": \"dolore ipsum\",\n  \"id\": \"ex laborum et magna\",\n  \"type\": \"gauge\",\n  \"value\": 46550929.4597235\n}"
+						}
+					]
+				},
+				{
+					"name": "Update counter value",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/update/counter/:metric_name/:metric_value",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"update",
+								"counter",
+								":metric_name",
+								":metric_value"
+							],
+							"variable": [
+								{
+									"key": "metric_name",
+									"value": "Ut",
+									"description": "(Required) Counter name"
+								},
+								{
+									"key": "metric_value",
+									"value": "36404452",
+									"description": "(Required) Counter value"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update gauge value",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/update/gauge/:metric_name/:metric_value",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"update",
+								"gauge",
+								":metric_name",
+								":metric_value"
+							],
+							"variable": [
+								{
+									"key": "metric_name",
+									"value": "Ut",
+									"description": "(Required) Gauge name"
+								},
+								{
+									"key": "metric_value",
+									"value": "-8459483.08702837",
+									"description": "(Required) Gauge value"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "value",
+			"item": [
+				{
+					"name": "Get metric value",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\" : \"GaugeExample\",\n    \"type\" : \"gauge\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/value",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"value"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "OK",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/value",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"value"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"delta\": -68467173,\n  \"hash\": \"dolore ipsum\",\n  \"id\": \"ex laborum et magna\",\n  \"type\": \"gauge\",\n  \"value\": 46550929.4597235\n}"
+						}
+					]
+				},
+				{
+					"name": "Get metric value",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"delta\": -68467173,\n  \"hash\": \"dolore ipsum\",\n  \"id\": \"ex laborum et magna\",\n  \"type\": \"gauge\",\n  \"value\": 46550929.4597235\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/value",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"value"
+							],
+							"variable": [
+								{
+									"key": "metric_type",
+									"value": "gauge",
+									"description": "(Required) Metric type"
+								},
+								{
+									"key": "metric_name",
+									"value": "GaugeExample",
+									"description": "(Required) Metric name"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Metric value",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/value/:metric_type/:metric_name",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"value",
+										":metric_type",
+										":metric_name"
+									],
+									"variable": [
+										{
+											"key": "metric_type",
+											"value": "Ut",
+											"description": "(Required) Metric type"
+										},
+										{
+											"key": "metric_name",
+											"value": "Ut",
+											"description": "(Required) Metric name"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "text",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "*/*"
+								}
+							],
+							"cookie": [],
+							"body": "Ut"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Update metric value of multiple metrics",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"id\" : \"GaugeExample\",\n        \"type\" : \"gauge\",\n        \"value\" : 1.5\n    },\n    {\n        \"id\" : \"CounterExample\",\n        \"type\" : \"counter\",\n        \"delta\" : 4\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/updates",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"updates"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ping DB",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/ping",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"ping"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}

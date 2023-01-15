@@ -1,3 +1,4 @@
+// Package http contains HTTP API implementation to handle metrics. See swagger specification for more details
 package http
 
 import (

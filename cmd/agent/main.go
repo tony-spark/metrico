@@ -1,3 +1,4 @@
+// Package main contains entrypoint for agent application
 package main
 
 import (

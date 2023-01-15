@@ -13,6 +13,7 @@ func BenchmarkAllCollectors(b *testing.B) {
 		NewPsUtilMetricsCollector(),
 		NewRandomMetricCollector(),
 	}
+	b.ResetTimer()
 	b.Run("all collectors update ang get metrics data", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for _, mc := range cs {
