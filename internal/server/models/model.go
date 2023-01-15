@@ -1,3 +1,4 @@
+// Package models contains main structs and interfaces
 package models
 
 import (
