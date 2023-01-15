@@ -1,3 +1,39 @@
+// staticlint is a linter used in this project
+//
+// staticlint performs following checks:
+//
+// 1. From standard library
+//   - assign
+//   - bools
+//   - composite
+//   - copylock
+//   - deepequalerrors
+//   - errorsas
+//   - httpresponse
+//   - ifaceassert
+//   - loopclosure
+//   - lostcancel
+//   - nilfunc
+//   - nilness
+//   - printf
+//   - shadow
+//   - sigchanyzer
+//   - stdmethods
+//   - stringintconv
+//   - structtag
+//   - tests
+//   - unmarshal
+//   - unreachable
+//   - unusedresult
+//   - unusedwrite
+//
+// 2. From staticcheck - SA (common) and S1 (code simplification) checks
+//
+// 3. errcheck - to check for unchecked errors
+//
+// 4. wrapcheck - to check that errors from external packages are wrapped during return to help identify the error source during debugging
+//
+// 5. os.Exit check - to check there's no os.Exit() call in the main function
 package main
 
 import (
