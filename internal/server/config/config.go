@@ -1,4 +1,4 @@
-// Package config contains application configuration support (via program arguments and environment variables)
+// Package config contains server application configuration support (via program arguments and environment variables)
 package config
 
 import (
