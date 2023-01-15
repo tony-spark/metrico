@@ -231,7 +231,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 // @Param metric_type path string true "Metric type" Enum(gauge, counter)
 // @Param metric_name path string true "Metric name"
 // @Success 200 {string} string "Metric value"
-// @Router /value/{metric_type}/{metric_name} [post]
+// @Router /value/{metric_type}/{metric_name} [get]
 func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
