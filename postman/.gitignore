@@ -1,3 +1,5 @@
+/libs/
+*.js
 # Logs
 logs
 *.log
