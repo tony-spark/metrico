@@ -5,6 +5,18 @@ name: run tests
 jobs:
 
   test:
+    services:
+      postgres-test:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: metrico
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
         go-version: [1.19]
@@ -19,9 +31,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Run tests
+        env:
+          TEST_DSN: postgresql://postgres:postgres@postgres-test:5432/metrico?sslmode=disable
         run: go test -v ./...
 
   coverage:
+    services:
+      postgres-test:
+        image: postgres:10-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: metrico
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
@@ -32,6 +58,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Calc coverage
+        env:
+          TEST_DSN: postgresql://postgres:postgres@postgres-test:5432/metrico?sslmode=disable
         run: |
           go test -covermode=count -coverprofile=count.out ./...
           go tool cover -func=count.out

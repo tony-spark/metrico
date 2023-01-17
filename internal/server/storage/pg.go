@@ -251,6 +251,19 @@ func (db MetricDВ) SaveCounter(ctx context.Context, name string, value int64) (
 	return &c, nil
 }
 
+func (db MetricDВ) deleteMetric(ctx context.Context, table string, name string) error {
+	_, err := db.db.ExecContext(ctx,
+		`DELETE FROM `+table+
+			` WHERE name = $1`,
+		name)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete metric: %w", err)
+	}
+
+	return nil
+}
+
 func (db MetricDВ) getAllCounters(ctx context.Context) ([]models.CounterValue, error) {
 	cs := make([]models.CounterValue, 0)
 
