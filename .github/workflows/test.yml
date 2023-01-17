@@ -5,6 +5,9 @@ name: run tests
 jobs:
 
   test-with-coverage:
+    env:
+      TEST_DSN: postgresql://postgres:postgres@postgres-test:5432/metrico?sslmode=disable
+
     services:
       postgres-test:
         image: postgres:10-alpine
@@ -28,8 +31,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Calc coverage
-        env:
-          TEST_DSN: postgresql://postgres:postgres@postgres-test:5432/metrico?sslmode=disable
         run: |
           go test -v -covermode=count -coverprofile=count.out ./...
           go tool cover -func=count.out

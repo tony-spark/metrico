@@ -11,6 +11,8 @@ jobs:
   devopstest:
     runs-on: ubuntu-latest
     container: golang:1.19
+    env:
+      TEST_DSN: postgresql://postgres:postgres@postgres:5432/praktikum?sslmode=disable
 
     services:
       postgres:
