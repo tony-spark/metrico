@@ -114,6 +114,14 @@ func TestRouter(t *testing.T) {
 		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, *mreq.Value, *mresp.Value)
+
+		mvreq := &dto.Metric{
+			ID:    mreq.ID,
+			MType: mreq.MType,
+		}
+		statusCode, mvresp := testMetricRequest(t, ts, "POST", "/value", mvreq)
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.Equal(t, *mreq.Value, *mvresp.Value)
 	})
 	t.Run("test counter update (post)", func(t *testing.T) {
 		v := int64(10)
@@ -125,6 +133,14 @@ func TestRouter(t *testing.T) {
 		statusCode, mresp := testMetricRequest(t, ts, "POST", "/update/", mreq)
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, *mreq.Delta, *mresp.Delta)
+
+		mvreq := &dto.Metric{
+			ID:    mreq.ID,
+			MType: mreq.MType,
+		}
+		statusCode, mvresp := testMetricRequest(t, ts, "POST", "/value", mvreq)
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.Equal(t, *mreq.Delta, *mvresp.Delta)
 	})
 }
 
@@ -142,11 +158,13 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 	return resp.StatusCode, string(respBody)
 }
 
-func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, m *dto.Metric) (int, *dto.Metric) {
-	b, err := json.Marshal(*m)
-	require.NoError(t, err)
+func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, obj interface{}) (int, *dto.Metric) {
+	var r io.Reader
+	if obj != nil {
+		r = bytes.NewReader(marshal(t, obj))
+	}
 
-	req, err := http.NewRequest(method, ts.URL+path, bytes.NewReader(b))
+	req, err := http.NewRequest(method, ts.URL+path, r)
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -163,4 +181,11 @@ func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, m
 	require.NoError(t, err)
 
 	return resp.StatusCode, &result
+}
+
+func marshal(t *testing.T, obj interface{}) []byte {
+	b, err := json.Marshal(obj)
+	require.NoError(t, err)
+
+	return b
 }
