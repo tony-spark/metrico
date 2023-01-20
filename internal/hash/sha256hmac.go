@@ -1,3 +1,4 @@
+// Package hash provides implementations for dto.Hasher
 package hash
 
 import (
@@ -6,14 +7,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 )
 
+// Sha256Hmac provides dto.Hasher implementation based on SHA-256
 type Sha256Hmac struct {
 	key string
 }
 
+// NewSha256Hmac creates a new Sha256Hmac with a given key
 func NewSha256Hmac(key string) *Sha256Hmac {
 	return &Sha256Hmac{
 		key: key,

@@ -1,9 +1,11 @@
 package web
 
 import (
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/assets"
 	"html/template"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/assets"
 )
 
 type EmbeddedTemplatesProvider struct {

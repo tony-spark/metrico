@@ -1,7 +1,9 @@
+// Package transports contains various implementations of sending metrics to server
 package transports
 
 import (
 	"context"
+
 	"github.com/tony-spark/metrico/internal/model"
 )
 

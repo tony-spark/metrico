@@ -1,15 +1,17 @@
-package agent
+package agent_test
 
 import (
 	"context"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/agent/transports"
 	"testing"
 	"time"
+
+	"github.com/tony-spark/metrico/internal/agent"
+	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/agent/transports"
 )
 
 func TestAgentRace(t *testing.T) {
-	a := NewMetricsAgent(
+	a := agent.NewMetricsAgent(
 		1*time.Second,
 		2*time.Second,
 		transports.NewDelayed(transports.NewDummy(), 2*time.Second),

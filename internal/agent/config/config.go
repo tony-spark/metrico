@@ -1,10 +1,12 @@
+// Package config contains agent application configuration support (via program arguments and environment variables)
 package config
 
 import (
 	"flag"
+	"time"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/rs/zerolog/log"
-	"time"
 )
 
 var (
@@ -16,6 +18,7 @@ type config struct {
 	ReportInterval time.Duration `env:"REPORT_INTERVAL"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	Key            string        `env:"KEY"`
+	Profile        bool          `env:"PROFILING"`
 }
 
 func Parse() error {
@@ -23,6 +26,7 @@ func Parse() error {
 	flag.DurationVar(&Config.ReportInterval, "r", 10*time.Second, "report interval")
 	flag.DurationVar(&Config.PollInterval, "p", 2*time.Second, "poll interval")
 	flag.StringVar(&Config.Key, "k", "", "hash key")
+	flag.BoolVar(&Config.Profile, "prof", false, "turn on profiling")
 	flag.Parse()
 
 	err := env.Parse(&Config)

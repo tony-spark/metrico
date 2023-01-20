@@ -1,0 +1,215 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Metric storage",
+        "title": "Metric API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/ping": {
+            "get": {
+                "summary": "Get database connection status",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "could not check DB or DB is not OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "DB connection is not configured",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/update": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update metric value",
+                "parameters": [
+                    {
+                        "description": "Metric's data",
+                        "name": "metric_data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.Metric"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Metric"
+                        }
+                    }
+                }
+            }
+        },
+        "/update/counter/{metric_name}/{metric_value}": {
+            "post": {
+                "summary": "Update counter value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Counter name",
+                        "name": "metric_name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Counter value",
+                        "name": "metric_value",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/update/gauge/{metric_name}/{metric_value}": {
+            "post": {
+                "summary": "Update gauge value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gauge name",
+                        "name": "metric_name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Gauge value",
+                        "name": "metric_value",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/updates": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update metric value of multiple metrics",
+                "parameters": [
+                    {
+                        "description": "Metric's data",
+                        "name": "metric_data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Metric"
+                            }
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/value": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get metric value",
+                "parameters": [
+                    {
+                        "description": "Metric's data",
+                        "name": "metric_data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.Metric"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Metric"
+                        }
+                    }
+                }
+            }
+        },
+        "/value/{metric_type}/{metric_name}": {
+            "get": {
+                "summary": "Get metric value",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric type",
+                        "name": "metric_type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Metric name",
+                        "name": "metric_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Metric value",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.Metric": {
+            "type": "object",
+            "properties": {
+                "delta": {
+                    "description": "value of counter metric",
+                    "type": "integer"
+                },
+                "hash": {
+                    "description": "object hash",
+                    "type": "string",
+                    "format": "HEX"
+                },
+                "id": {
+                    "description": "metric's ID",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "type of metric (\"gauge\" or \"counter)",
+                    "type": "string",
+                    "enum": [
+                        "gauge",
+                        "counter"
+                    ]
+                },
+                "value": {
+                    "description": "value of gauge metric",
+                    "type": "number"
+                }
+            }
+        }
+    }
+}

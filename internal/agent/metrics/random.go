@@ -1,10 +1,11 @@
 package metrics
 
 import (
-	"github.com/tony-spark/metrico/internal/model"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 const (

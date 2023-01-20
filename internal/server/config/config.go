@@ -1,10 +1,12 @@
+// Package config contains server application configuration support (via program arguments and environment variables)
 package config
 
 import (
 	"flag"
+	"time"
+
 	"github.com/caarlos0/env/v6"
 	"github.com/rs/zerolog/log"
-	"time"
 )
 
 var (

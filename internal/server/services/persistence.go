@@ -2,9 +2,11 @@ package services
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/server/models"
 	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/server/models"
 )
 
 type PersistenceService struct {

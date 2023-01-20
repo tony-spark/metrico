@@ -2,8 +2,10 @@ package metrics
 
 import (
 	"fmt"
+
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+
 	"github.com/tony-spark/metrico/internal/model"
 )
 

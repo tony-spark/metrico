@@ -1,17 +1,21 @@
+// Package agent contains implementation of metrics agent - application to collect metrics and send it to server
 package agent
 
 import (
 	"context"
 	"errors"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/agent/transports"
-	"github.com/tony-spark/metrico/internal/hash"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/agent/metrics"
+	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/hash"
 )
 
+// MetricsAgent represents agent application
 type MetricsAgent struct {
 	pollInterval   time.Duration
 	reportInterval time.Duration
@@ -19,8 +23,10 @@ type MetricsAgent struct {
 	transport      transports.Transport
 }
 
+// Option represents option function for agent configuration
 type Option func(a *MetricsAgent)
 
+// New creates agent with given options
 func New(options ...Option) MetricsAgent {
 	a := MetricsAgent{
 		pollInterval:   2 * time.Second,
@@ -40,6 +46,8 @@ func New(options ...Option) MetricsAgent {
 	return a
 }
 
+// WithHTTPTransport configures agent to send metrics to given URL via HTTP.
+// If hashKey is not empty, hash will be calculated during sending metrics
 func WithHTTPTransport(url string, hashKey string) Option {
 	return func(a *MetricsAgent) {
 		if len(hashKey) > 0 {
@@ -50,24 +58,28 @@ func WithHTTPTransport(url string, hashKey string) Option {
 	}
 }
 
+// WithPollInterval configures agent to update metrics at a given interval
 func WithPollInterval(interval time.Duration) Option {
 	return func(a *MetricsAgent) {
 		a.pollInterval = interval
 	}
 }
 
+// WithReportInterval configures agent to send metrics at a given interval
 func WithReportInterval(interval time.Duration) Option {
 	return func(a *MetricsAgent) {
 		a.reportInterval = interval
 	}
 }
 
+// WithCollectors configures agent with given set of metrics collectors
 func WithCollectors(cs []metrics.MetricCollector) Option {
 	return func(a *MetricsAgent) {
 		a.collectors = cs
 	}
 }
 
+// NewMetricsAgent creates new agent with given pollInterval, reportInterval, transport and collectors
 func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport, collectors []metrics.MetricCollector) *MetricsAgent {
 	return &MetricsAgent{
 		transport:      transport,
@@ -128,7 +140,9 @@ func (a MetricsAgent) report(ctx context.Context) {
 	wg.Wait()
 }
 
-// Run starts collecting metrics and sending it via transport
+// Run starts to collect metrics and send it via transport
+//
+// Note that Run blocks until given context is done
 func (a MetricsAgent) Run(ctx context.Context) {
 	pollTicker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)

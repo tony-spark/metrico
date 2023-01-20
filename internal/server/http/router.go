@@ -1,3 +1,4 @@
+// Package http contains HTTP API implementation to handle metrics. See swagger specification for more details
 package http
 
 import (
@@ -5,12 +6,17 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog"
 	"github.com/rs/zerolog/log"
+
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/services"
 	"github.com/tony-spark/metrico/internal/server/web"
 )
+
+// @Title Metric API
+// @Description Metric storage
+// @Version 1.0
 
 type Router struct {
 	dbm       models.DBManager
@@ -36,6 +42,7 @@ func NewRouter(repo models.MetricRepository, postUpdateFn func(), h dto.Hasher, 
 	r.Use(httplog.RequestLogger(log.Logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
+	r.Mount("/debug", middleware.Profiler())
 
 	r.Get("/", router.MetricsViewPageHandler())
 	r.Route("/update", func(r chi.Router) {

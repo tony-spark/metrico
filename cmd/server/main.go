@@ -1,15 +1,18 @@
+// Package main contains entrypoint for server application
 package main
 
 import (
 	"context"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/server"
-	"github.com/tony-spark/metrico/internal/server/config"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/server"
+	"github.com/tony-spark/metrico/internal/server/config"
 )
 
 func main() {

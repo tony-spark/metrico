@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/dto"
-	"github.com/tony-spark/metrico/internal/model"
-	"github.com/tony-spark/metrico/internal/server/models"
 	"io"
 	"mime"
 	"net/http"
 	"sort"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
+
+	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/model"
+	"github.com/tony-spark/metrico/internal/server/models"
 )
 
 func checkContentType(w http.ResponseWriter, r *http.Request) error {
@@ -84,6 +86,13 @@ func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter) bool {
 	return true
 }
 
+// UpdatePostHandler godoc
+// @Summary Update metric value
+// @Accepts json
+// @Produce json
+// @Param metric_data body dto.Metric true "Metric's data"
+// @Success 200 {object} dto.Metric
+// @Router /update [post]
 func (router Router) UpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
@@ -119,6 +128,12 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 	}
 }
 
+// BulkUpdatePostHandler godoc
+// @Summary Update metric value of multiple metrics
+// @Accepts json
+// @Produce json
+// @Param metric_data body []dto.Metric true "Metric's data"
+// @Router /updates [post]
 func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
@@ -160,9 +175,17 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Error saving metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 		}
+		w.Write([]byte(""))
 	}
 }
 
+// GetPostHandler godoc
+// @Summary Get metric value
+// @Accepts json
+// @Produce json
+// @Param metric_data body dto.Metric true "Metric's data"
+// @Success 200 {object} dto.Metric
+// @Router /value [post]
 func (router Router) GetPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
@@ -203,6 +226,12 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 	}
 }
 
+// MetricGetHandler godoc
+// @Summary Get metric value
+// @Param metric_type path string true "Metric type" Enum(gauge, counter)
+// @Param metric_name path string true "Metric name"
+// @Success 200 {string} string "Metric value"
+// @Router /value/{metric_type}/{metric_name} [get]
 func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -220,6 +249,11 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 	}
 }
 
+// CounterPostHandler godoc
+// @Summary Update counter value
+// @Param metric_name path string true "Counter name"
+// @Param metric_value path int true "Counter value"
+// @Router /update/counter/{metric_name}/{metric_value} [post]
 func (router Router) CounterPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -239,6 +273,11 @@ func (router Router) CounterPostHandler() http.HandlerFunc {
 	}
 }
 
+// GaugePostHandler godoc
+// @Summary Update gauge value
+// @Param metric_name path string true "Gauge name"
+// @Param metric_value path number true "Gauge value"
+// @Router /update/gauge/{metric_name}/{metric_value} [post]
 func (router Router) GaugePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -275,7 +314,6 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("error getting metrics")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-
 		}
 		for _, m := range ms {
 			data.Items = append(data.Items, Item{m.ID(), m.Type(), fmt.Sprint(m.Val())})
@@ -296,6 +334,12 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 	}
 }
 
+// PingHandler godoc
+// @Summary Get database connection status
+// @Success 200
+// @Failure 503 {string} string "DB connection is not configured"
+// @Failure 500 {string} string "could not check DB or DB is not OK"
+// @Router /ping [get]
 func (router Router) PingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if router.dbm == nil {

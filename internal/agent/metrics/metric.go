@@ -1,7 +1,9 @@
+// Package metrics contains various metrics implementations
 package metrics
 
 import (
 	"fmt"
+
 	"github.com/tony-spark/metrico/internal/model"
 )
 

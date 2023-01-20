@@ -1,0 +1,142 @@
+definitions:
+  dto.Metric:
+    properties:
+      delta:
+        description: value of counter metric
+        type: integer
+      hash:
+        description: object hash
+        format: HEX
+        type: string
+      id:
+        description: metric's ID
+        type: string
+      type:
+        description: type of metric ("gauge" or "counter)
+        enum:
+        - gauge
+        - counter
+        type: string
+      value:
+        description: value of gauge metric
+        type: number
+    type: object
+info:
+  contact: {}
+  description: Metric storage
+  title: Metric API
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: could not check DB or DB is not OK
+          schema:
+            type: string
+        "503":
+          description: DB connection is not configured
+          schema:
+            type: string
+      summary: Get database connection status
+  /update:
+    post:
+      parameters:
+      - description: Metric's data
+        in: body
+        name: metric_data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Metric'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Metric'
+      summary: Update metric value
+  /update/counter/{metric_name}/{metric_value}:
+    post:
+      parameters:
+      - description: Counter name
+        in: path
+        name: metric_name
+        required: true
+        type: string
+      - description: Counter value
+        in: path
+        name: metric_value
+        required: true
+        type: integer
+      responses: {}
+      summary: Update counter value
+  /update/gauge/{metric_name}/{metric_value}:
+    post:
+      parameters:
+      - description: Gauge name
+        in: path
+        name: metric_name
+        required: true
+        type: string
+      - description: Gauge value
+        in: path
+        name: metric_value
+        required: true
+        type: number
+      responses: {}
+      summary: Update gauge value
+  /updates:
+    post:
+      parameters:
+      - description: Metric's data
+        in: body
+        name: metric_data
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/dto.Metric'
+          type: array
+      produces:
+      - application/json
+      responses: {}
+      summary: Update metric value of multiple metrics
+  /value:
+    post:
+      parameters:
+      - description: Metric's data
+        in: body
+        name: metric_data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Metric'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Metric'
+      summary: Get metric value
+  /value/{metric_type}/{metric_name}:
+    get:
+      parameters:
+      - description: Metric type
+        in: path
+        name: metric_type
+        required: true
+        type: string
+      - description: Metric name
+        in: path
+        name: metric_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Metric value
+          schema:
+            type: string
+      summary: Get metric value
+swagger: "2.0"

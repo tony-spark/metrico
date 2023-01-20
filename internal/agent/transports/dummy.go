@@ -2,8 +2,9 @@ package transports
 
 import (
 	"context"
-	"github.com/tony-spark/metrico/internal/model"
 	"time"
+
+	"github.com/tony-spark/metrico/internal/model"
 )
 
 type Dummy struct {
