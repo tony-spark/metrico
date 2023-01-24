@@ -3,6 +3,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"time"
 
 	"github.com/caarlos0/env/v6"
@@ -33,7 +34,7 @@ func Parse() error {
 
 	err := env.Parse(&Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not read config: %w", err)
 	}
 
 	log.Info().Msgf("Server config parsed:  %+v", Config)

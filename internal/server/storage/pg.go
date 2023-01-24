@@ -57,7 +57,7 @@ func (pgm PgDatabaseManager) Check(ctx context.Context) (bool, error) {
 	ct, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 	if err := pgm.db.PingContext(ct); err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to check pg connection: %w", err)
 	}
 	return true, nil
 }
@@ -67,7 +67,11 @@ func (pgm PgDatabaseManager) MetricRepository() models.MetricRepository {
 }
 
 func (pgm PgDatabaseManager) Close() error {
-	return pgm.db.Close()
+	err := pgm.db.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close pg connection: %w", err)
+	}
+	return nil
 }
 
 func (db MetricDВ) GetGaugeByName(ctx context.Context, name string) (*models.GaugeValue, error) {
@@ -79,7 +83,7 @@ func (db MetricDВ) GetGaugeByName(ctx context.Context, name string) (*models.Ga
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get gauge: %w", err)
 	}
 	return &g, nil
 }
@@ -97,7 +101,7 @@ func (db MetricDВ) SaveGauge(ctx context.Context, name string, value float64) (
 		name, value)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to save gauge: %w", err)
 	}
 
 	if err = checkOneAffected(result); err != nil {
@@ -110,7 +114,7 @@ func (db MetricDВ) SaveGauge(ctx context.Context, name string, value float64) (
 func (db MetricDВ) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
 	tx, err := db.db.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to save gauges in batch: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -119,17 +123,21 @@ func (db MetricDВ) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) e
 				ON CONFLICT (name) DO UPDATE 
 				SET value = excluded.value`)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to save gauges in batch: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, g := range gs {
-		if _, err := stmt.ExecContext(ctx, g.Name, g.Value); err != nil {
-			return err
+		if _, err = stmt.ExecContext(ctx, g.Name, g.Value); err != nil {
+			return fmt.Errorf("failed to save gauges in batch: %w", err)
 		}
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to save gauges in batch: %w", err)
+	}
+	return nil
 }
 
 func (db MetricDВ) getAllGauges(ctx context.Context) ([]models.GaugeValue, error) {
@@ -137,22 +145,22 @@ func (db MetricDВ) getAllGauges(ctx context.Context) ([]models.GaugeValue, erro
 
 	rows, err := db.db.QueryContext(ctx, `SELECT name, value FROM gauges`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve gauges: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var g models.GaugeValue
-		err := rows.Scan(&g.Name, &g.Value)
+		err = rows.Scan(&g.Name, &g.Value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to retrieve gauges: %w", err)
 		}
 
 		gs = append(gs, g)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve gauges: %w", err)
 	}
 
 	return gs, nil
@@ -167,7 +175,7 @@ func (db MetricDВ) GetCounterByName(ctx context.Context, name string) (*models.
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve counter value: %w", err)
 	}
 	return &g, nil
 }
@@ -185,7 +193,7 @@ func (db MetricDВ) AddAndSaveCounter(ctx context.Context, name string, value in
 	err := row.Scan(&c.Name, &c.Value)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to save counter: %w", err)
 	}
 
 	return &c, nil
@@ -194,7 +202,7 @@ func (db MetricDВ) AddAndSaveCounter(ctx context.Context, name string, value in
 func (db MetricDВ) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
 	tx, err := db.db.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to save all counters: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -203,17 +211,21 @@ func (db MetricDВ) AddAndSaveAllCounters(ctx context.Context, cs []models.Count
 				ON CONFLICT (name) DO UPDATE 
 				SET value = counters.value + excluded.value`)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to save all counters: %w", err)
 	}
 	defer stmt.Close()
 
 	for _, c := range cs {
-		if _, err := stmt.ExecContext(ctx, c.Name, c.Value); err != nil {
-			return err
+		if _, err = stmt.ExecContext(ctx, c.Name, c.Value); err != nil {
+			return fmt.Errorf("failed to save all counters: %w", err)
 		}
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to save all counters: %w", err)
+	}
+	return nil
 }
 
 func (db MetricDВ) SaveCounter(ctx context.Context, name string, value int64) (*models.CounterValue, error) {
@@ -229,7 +241,7 @@ func (db MetricDВ) SaveCounter(ctx context.Context, name string, value int64) (
 		name, value)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to save counter to DB: %w", err)
 	}
 
 	if err = checkOneAffected(result); err != nil {
@@ -239,27 +251,40 @@ func (db MetricDВ) SaveCounter(ctx context.Context, name string, value int64) (
 	return &c, nil
 }
 
+func (db MetricDВ) deleteMetric(ctx context.Context, table string, name string) error {
+	_, err := db.db.ExecContext(ctx,
+		`DELETE FROM `+table+
+			` WHERE name = $1`,
+		name)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete metric: %w", err)
+	}
+
+	return nil
+}
+
 func (db MetricDВ) getAllCounters(ctx context.Context) ([]models.CounterValue, error) {
 	cs := make([]models.CounterValue, 0)
 
 	rows, err := db.db.QueryContext(ctx, `SELECT name, value FROM counters`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while reading counters from DB: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var g models.CounterValue
-		err := rows.Scan(&g.Name, &g.Value)
+		err = rows.Scan(&g.Name, &g.Value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error while reading counters from DB: %w", err)
 		}
 
 		cs = append(cs, g)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while reading counters from DB: %w", err)
 	}
 
 	return cs, nil
@@ -292,7 +317,7 @@ func checkOneAffected(r sql.Result) error {
 	rows, err := r.RowsAffected()
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check affected rows: %w", err)
 	}
 	if rows != 1 {
 		return fmt.Errorf("expected to affect 1 row, affected %d", rows)

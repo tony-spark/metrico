@@ -35,7 +35,10 @@ func (r SingleValueRepository) SaveGauge(_ context.Context, name string, value f
 
 func (r SingleValueRepository) SaveAllGauges(ctx context.Context, gs []models.GaugeValue) error {
 	for _, g := range gs {
-		r.SaveGauge(ctx, g.Name, g.Value)
+		_, err := r.SaveGauge(ctx, g.Name, g.Value)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -59,7 +62,10 @@ func (r SingleValueRepository) AddAndSaveCounter(_ context.Context, name string,
 
 func (r SingleValueRepository) AddAndSaveAllCounters(ctx context.Context, cs []models.CounterValue) error {
 	for _, c := range cs {
-		r.AddAndSaveCounter(ctx, c.Name, c.Value)
+		_, err := r.AddAndSaveCounter(ctx, c.Name, c.Value)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

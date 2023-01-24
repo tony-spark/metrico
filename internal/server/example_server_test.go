@@ -15,7 +15,11 @@ func Example() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not create temp file")
 	}
-	defer tempf.Close()
+	defer func() {
+		if err = tempf.Close(); err != nil {
+			log.Fatal().Err(tempf.Close()).Msg("error closing temp file")
+		}
+	}()
 	s := server.New(
 		server.WithFileStore(tempf.Name(), 3*time.Second, false),
 	)

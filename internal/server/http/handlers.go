@@ -23,7 +23,7 @@ func checkContentType(w http.ResponseWriter, r *http.Request) error {
 	t, _, err := mime.ParseMediaType(ctype)
 	if err != nil || t != "application/json" {
 		http.Error(w, "Only application/json supported", http.StatusUnsupportedMediaType)
-		return err
+		return fmt.Errorf("could not check content type: %w", err)
 	}
 	return nil
 }
@@ -33,13 +33,13 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metric from request: %w", err)
 	}
 	var m dto.Metric
 	err = json.Unmarshal(body, &m)
 	if err != nil {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metric from request: %w", err)
 	}
 	if m.MType != model.GAUGE && m.MType != model.COUNTER {
 		http.Error(w, "Unknown metric type", http.StatusBadRequest)
@@ -53,13 +53,13 @@ func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metrics from request: %w", err)
 	}
 	var ms []dto.Metric
 	err = json.Unmarshal(body, &ms)
 	if err != nil {
 		http.Error(w, "Could not parse json", http.StatusBadRequest)
-		return nil, err
+		return nil, fmt.Errorf("failed to read metrics from request: %w", err)
 	}
 	for _, m := range ms {
 		if m.MType != model.GAUGE && m.MType != model.COUNTER {
@@ -124,7 +124,10 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(b)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 
@@ -175,7 +178,10 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Error saving metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
 		}
-		w.Write([]byte(""))
+		_, err = w.Write([]byte(""))
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 
@@ -222,7 +228,10 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(b)
+		_, err = w.Write(b)
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 
@@ -245,7 +254,10 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 			http.Error(w, "metric not found", http.StatusNotFound)
 			return
 		}
-		w.Write([]byte(fmt.Sprint(m.Val())))
+		_, err = w.Write([]byte(fmt.Sprint(m.Val())))
+		if err != nil {
+			log.Error().Err(err).Msg("error writing response")
+		}
 	}
 }
 

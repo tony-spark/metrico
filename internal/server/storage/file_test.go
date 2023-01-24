@@ -13,7 +13,10 @@ func TestJSONFilePersistence(t *testing.T) {
 	t.Run("simple save and load", func(t *testing.T) {
 		tempf, err := os.CreateTemp(os.TempDir(), "json-persistence-test")
 		if err != nil {
-			defer tempf.Close()
+			defer func() {
+				err = tempf.Close()
+				require.NoError(t, err)
+			}()
 		}
 		require.Nil(t, err)
 		jfp, err := NewJSONFilePersistence(tempf.Name())

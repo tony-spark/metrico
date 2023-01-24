@@ -39,7 +39,7 @@ func (s Sha256Hmac) Check(m dto.Metric) (bool, error) {
 	}
 	orig, err := hex.DecodeString(m.Hash)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not check hash: %w", err)
 	}
 	return bytes.Equal(calc, orig), nil
 }

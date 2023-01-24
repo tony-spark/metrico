@@ -60,7 +60,7 @@ func (h HTTPTransport) send(metric model.Metric) error {
 		SetHeader("Content-Type", "text/plain")
 	resp, err := req.Post(endpointSend)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not send metric: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
@@ -90,7 +90,7 @@ func (h HTTPTransport) sendJSON(metric model.Metric) error {
 		SetBody(d)
 	resp, err := req.Post(endpointSendJSON)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not send json: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: value not accepted %v response code: %v", req.URL, resp.StatusCode())
@@ -113,7 +113,7 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 		SetBody(dtos)
 	resp, err := req.Post(endpointSendJSONBatch)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not send batch json: %w", err)
 	}
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("send error: metrics not accepted %v response code: %v", req.URL, resp.StatusCode())
