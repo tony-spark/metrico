@@ -20,6 +20,7 @@ type config struct {
 	PollInterval   time.Duration `env:"POLL_INTERVAL"`
 	Key            string        `env:"KEY"`
 	Profile        bool          `env:"PROFILING"`
+	PublicKeyFile  string        `env:"CRYPTO_KEY"`
 }
 
 func Parse() error {
@@ -28,6 +29,7 @@ func Parse() error {
 	flag.DurationVar(&Config.PollInterval, "p", 2*time.Second, "poll interval")
 	flag.StringVar(&Config.Key, "k", "", "hash key")
 	flag.BoolVar(&Config.Profile, "prof", false, "turn on profiling")
+	flag.StringVar(&Config.PublicKeyFile, "crypto-key", "", "public key for message encryption")
 	flag.Parse()
 
 	err := env.Parse(&Config)

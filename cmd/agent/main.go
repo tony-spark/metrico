@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/crypto"
 	"github.com/tony-spark/metrico/internal/hash"
 
 	a "github.com/tony-spark/metrico/internal/agent"
@@ -44,6 +45,13 @@ func main() {
 	var transportOptions []transports.HTTPOption
 	if len(config.Config.Key) > 0 {
 		transportOptions = append(transportOptions, transports.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
+	}
+	if len(config.Config.PublicKeyFile) > 0 {
+		encryptor, err := crypto.NewRSAEncryptorFromFile(config.Config.PublicKeyFile, "metrico")
+		if err != nil {
+			log.Fatal().Err(err).Msg("could not parse public key")
+		}
+		transportOptions = append(transportOptions, transports.WithEncryptor(encryptor))
 	}
 	t := transports.NewHTTP(baseURL, transportOptions...)
 

@@ -5,7 +5,10 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"os"
 )
 
 type rsaEncryptor struct {
@@ -18,6 +21,27 @@ func NewRSAEncryptor(key *rsa.PublicKey, label string) Encryptor {
 		key:   key,
 		label: []byte(label),
 	}
+}
+
+func NewRSAEncryptorFromFile(publicKeyFile string, label string) (Encryptor, error) {
+	bs, err := os.ReadFile(publicKeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not read public key file: %w", err)
+	}
+	publicPem, _ := pem.Decode(bs)
+	if publicPem == nil {
+		return nil, fmt.Errorf("could not decode PEM")
+	}
+	parsedKey, err := x509.ParsePKIXPublicKey(publicPem.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse public key: %w", err)
+	}
+
+	if key, ok := parsedKey.(*rsa.PublicKey); ok {
+		return NewRSAEncryptor(key, label), nil
+	}
+
+	return nil, fmt.Errorf("could not parse RSA public key")
 }
 
 func (e rsaEncryptor) Encrypt(msg []byte) (encrypted []byte, err error) {
