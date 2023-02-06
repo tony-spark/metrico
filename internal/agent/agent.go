@@ -12,7 +12,6 @@ import (
 
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
-	"github.com/tony-spark/metrico/internal/hash"
 )
 
 // MetricsAgent represents agent application
@@ -36,7 +35,7 @@ func New(options ...Option) MetricsAgent {
 			metrics.NewRandomMetricCollector(),
 			metrics.NewPsUtilMetricsCollector(),
 		},
-		transport: transports.NewHTTPTransport("http://127.0.0.1:8080"),
+		transport: transports.NewHTTP("http://127.0.0.1:8080"),
 	}
 
 	for _, opt := range options {
@@ -46,15 +45,10 @@ func New(options ...Option) MetricsAgent {
 	return a
 }
 
-// WithHTTPTransport configures agent to send metrics to given URL via HTTP.
-// If hashKey is not empty, hash will be calculated during sending metrics
-func WithHTTPTransport(url string, hashKey string) Option {
+// WithTransport configures agent to use given transport to send metrics
+func WithTransport(transport transports.Transport) Option {
 	return func(a *MetricsAgent) {
-		if len(hashKey) > 0 {
-			a.transport = transports.NewHTTPTransportHashed(url, hash.NewSha256Hmac(hashKey))
-		} else {
-			a.transport = transports.NewHTTPTransport(url)
-		}
+		a.transport = transport
 	}
 }
 

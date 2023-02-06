@@ -38,7 +38,7 @@ func TestHTTPTransportGauge(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTPTransport(server.URL)
+	transport := NewHTTP(server.URL)
 	err := transport.SendMetric(metrics.NewGaugeMetric(name, value))
 	t.Run("send gauge no error", func(t *testing.T) {
 		assert.Nil(t, err)
@@ -68,7 +68,7 @@ func TestHTTPTransportCounter(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTPTransport(server.URL)
+	transport := NewHTTP(server.URL)
 	err := transport.SendMetric(metrics.NewCounterMetric(name, value))
 	t.Run("send counter no error", func(t *testing.T) {
 		assert.Nil(t, err)
@@ -81,7 +81,7 @@ func TestHTTPTransportBadStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTPTransport(server.URL)
+	transport := NewHTTP(server.URL)
 	err := transport.SendMetric(metrics.NewCounterMetric("Test", 0))
 	t.Run("counter error", func(t *testing.T) {
 		assert.NotNil(t, err)
@@ -90,7 +90,7 @@ func TestHTTPTransportBadStatus(t *testing.T) {
 
 // TODO: rework this check to be safer? (e.g. use mock transport)
 func TestHTTPTransportConnectionProblem(t *testing.T) {
-	transport := NewHTTPTransport("http://doesnotexist:1010")
+	transport := NewHTTP("http://doesnotexist:1010")
 	err := transport.SendMetric(metrics.NewCounterMetric("Test", 0))
 	t.Run("connection error", func(t *testing.T) {
 		assert.NotNil(t, err)
@@ -118,7 +118,7 @@ func TestHTTPTransportHashed(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTPTransportHashed(server.URL, h)
+	transport := NewHTTP(server.URL, WithHasher(h))
 	err := transport.SendMetric(metrics.NewCounterMetric(name, value))
 	t.Run("send counter with hash no error", func(t *testing.T) {
 		assert.Nil(t, err)

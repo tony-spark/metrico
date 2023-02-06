@@ -14,6 +14,8 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/hash"
 
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
@@ -39,8 +41,14 @@ func main() {
 
 	baseURL := "http://" + strings.Trim(config.Config.Address, "\"")
 
+	var transportOptions []transports.HTTPOption
+	if len(config.Config.Key) > 0 {
+		transportOptions = append(transportOptions, transports.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
+	}
+	t := transports.NewHTTP(baseURL, transportOptions...)
+
 	agent := a.New(
-		a.WithHTTPTransport(baseURL, config.Config.Key),
+		a.WithTransport(t),
 		a.WithPollInterval(config.Config.PollInterval),
 		a.WithReportInterval(config.Config.ReportInterval),
 	)
