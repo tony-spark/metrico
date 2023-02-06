@@ -35,4 +35,17 @@ func TestRSA(t *testing.T) {
 		_, err := decryptor.Decrypt([]byte("wrong"))
 		require.Error(t, err)
 	})
+
+	t.Run("test long message", func(t *testing.T) {
+		bs := make([]byte, 1024)
+		rand.Read(bs)
+
+		encrypted, err := encryptor.Encrypt(bs)
+		require.NoError(t, err)
+
+		decrypted, err := decryptor.Decrypt(encrypted)
+		require.NoError(t, err)
+
+		assert.Equal(t, bs, decrypted)
+	})
 }

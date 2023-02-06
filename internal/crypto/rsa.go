@@ -20,12 +20,18 @@ func NewRSAEncryptor(key *rsa.PublicKey, label string) Encryptor {
 	}
 }
 
-func (e rsaEncryptor) Encrypt(msg []byte) ([]byte, error) {
-	encrypted, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, e.key, msg, e.label)
-	if err != nil {
-		return nil, fmt.Errorf("could not encrypt message: %w", err)
+func (e rsaEncryptor) Encrypt(msg []byte) (encrypted []byte, err error) {
+	hash := sha256.New()
+	blockSize := e.key.Size() - 2*hash.Size() - 2
+	for _, block := range divide(msg, blockSize) {
+		var encryptedBlock []byte
+		encryptedBlock, err = rsa.EncryptOAEP(hash, rand.Reader, e.key, block, e.label)
+		if err != nil {
+			return nil, fmt.Errorf("could not encrypt message: %w", err)
+		}
+		encrypted = append(encrypted, encryptedBlock...)
 	}
-	return encrypted, nil
+	return
 }
 
 type rsaDecryptor struct {
@@ -44,10 +50,27 @@ func NewRSADecryptor(key *rsa.PrivateKey, label string) Decryptor {
 	}
 }
 
-func (d rsaDecryptor) Decrypt(msg []byte) ([]byte, error) {
-	decrypted, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, d.key, msg, d.label)
-	if err != nil {
-		return nil, fmt.Errorf("could not decrypt message: %w", err)
+func (d rsaDecryptor) Decrypt(msg []byte) (decrypted []byte, err error) {
+	hash := sha256.New()
+	for _, block := range divide(msg, d.key.Size()) {
+		var decryptedBlock []byte
+		decryptedBlock, err = rsa.DecryptOAEP(hash, rand.Reader, d.key, block, d.label)
+		if err != nil {
+			return nil, fmt.Errorf("could not decrypt message: %w", err)
+		}
+		decrypted = append(decrypted, decryptedBlock...)
 	}
-	return decrypted, nil
+	return
+}
+
+func divide(s []byte, blockSize int) [][]byte {
+	var divided [][]byte
+	for i := 0; i < len(s); i += blockSize {
+		end := i + blockSize
+		if end > len(s) {
+			end = len(s)
+		}
+		divided = append(divided, s[i:end])
+	}
+	return divided
 }
