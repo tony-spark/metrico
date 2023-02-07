@@ -22,7 +22,7 @@ import (
 func TestRouter(t *testing.T) {
 	mr := storage.NewSingleValueRepository()
 	templates := web.NewEmbeddedTemplates()
-	r := NewRouter(services.NewMetricService(mr, nil), templates, nil, nil)
+	r := NewRouter(services.NewMetricService(mr, nil), templates)
 	ts := httptest.NewServer(r.R)
 	defer ts.Close()
 
