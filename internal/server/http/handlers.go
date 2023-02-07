@@ -48,12 +48,19 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	return &m, nil
 }
 
-func readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
+func (router Router) readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, fmt.Errorf("failed to read metrics from request: %w", err)
+	}
+	if router.d != nil {
+		body, err = router.d.Decrypt(body)
+		if err != nil {
+			http.Error(w, "Could not decrypt body", http.StatusInternalServerError)
+			return nil, fmt.Errorf("failed to decrypt request: %w", err)
+		}
 	}
 	var ms []dto.Metric
 	err = json.Unmarshal(body, &ms)
@@ -143,7 +150,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Wrong content type")
 			return
 		}
-		ms, err := readMetrics(w, r)
+		ms, err := router.readMetrics(w, r)
 		if err != nil {
 			return
 		}

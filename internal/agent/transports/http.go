@@ -2,6 +2,7 @@ package transports
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -125,8 +126,12 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 		dtos = append(dtos, *mdto)
 	}
 	req := h.client.R().
-		SetContext(ctx).
-		SetBody(dtos)
+		SetContext(ctx)
+	err := h.encodeInRequest(dtos, req)
+	if err != nil {
+		return err
+	}
+
 	resp, err := req.Post(endpointSendJSONBatch)
 	if err != nil {
 		return fmt.Errorf("could not send batch json: %w", err)
@@ -136,6 +141,25 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 	}
 	for _, metric := range mx {
 		log.Info().Msgf("sent in batch %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
+	}
+	return nil
+}
+
+func (h HTTPTransport) encodeInRequest(obj interface{}, r *resty.Request) error {
+	bs, err := json.Marshal(obj)
+	if err != nil {
+		return fmt.Errorf("could not marshal json: %w", err)
+	}
+	r.SetHeader("Content-Type", "application/json")
+	if h.encryptor != nil {
+		encrypted, err := h.encryptor.Encrypt(bs)
+		if err != nil {
+			return fmt.Errorf("could not encrypt message: %w", err)
+		}
+		r.SetHeader("X-Encrypted", "true")
+		r.SetBody(encrypted)
+	} else {
+		r.SetBody(bs)
 	}
 	return nil
 }
