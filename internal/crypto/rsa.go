@@ -30,18 +30,14 @@ func NewRSAEncryptorFromFile(publicKeyFile string, label string) (Encryptor, err
 	}
 	publicPem, _ := pem.Decode(bs)
 	if publicPem == nil {
-		return nil, fmt.Errorf("could not decode PEM")
+		return nil, fmt.Errorf("could not decode PEM (public key)")
 	}
-	parsedKey, err := x509.ParsePKIXPublicKey(publicPem.Bytes)
+	parsedKey, err := x509.ParsePKCS1PublicKey(publicPem.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse public key: %w", err)
 	}
 
-	if key, ok := parsedKey.(*rsa.PublicKey); ok {
-		return NewRSAEncryptor(key, label), nil
-	}
-
-	return nil, fmt.Errorf("could not parse RSA public key")
+	return NewRSAEncryptor(parsedKey, label), nil
 }
 
 func (e rsaEncryptor) Encrypt(msg []byte) (encrypted []byte, err error) {
@@ -72,6 +68,23 @@ func NewRSADecryptor(key *rsa.PrivateKey, label string) Decryptor {
 			Hash: crypto.SHA256,
 		},
 	}
+}
+
+func NewRSADecryptorFromFile(privateKeyFile string, label string) (Decryptor, error) {
+	bs, err := os.ReadFile(privateKeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not read private key file: %w", err)
+	}
+	privatePem, _ := pem.Decode(bs)
+	if privatePem == nil {
+		return nil, fmt.Errorf("could not decode PEM (private key)")
+	}
+	parsedKey, err := x509.ParsePKCS1PrivateKey(privatePem.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse private key: %w", err)
+	}
+
+	return NewRSADecryptor(parsedKey, label), nil
 }
 
 func (d rsaDecryptor) Decrypt(msg []byte) (decrypted []byte, err error) {

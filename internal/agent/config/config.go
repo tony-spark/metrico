@@ -29,7 +29,7 @@ func Parse() error {
 	flag.DurationVar(&Config.PollInterval, "p", 2*time.Second, "poll interval")
 	flag.StringVar(&Config.Key, "k", "", "hash key")
 	flag.BoolVar(&Config.Profile, "prof", false, "turn on profiling")
-	flag.StringVar(&Config.PublicKeyFile, "crypto-key", "", "public key for message encryption")
+	flag.StringVar(&Config.PublicKeyFile, "crypto-key", "", "public key for message encryption (PEM)")
 	flag.Parse()
 
 	err := env.Parse(&Config)

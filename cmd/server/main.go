@@ -41,6 +41,7 @@ func main() {
 		server.WithDB(config.Config.DSN),
 		server.WithHashKey(config.Config.Key),
 		server.WithFileStore(config.Config.StoreFilename, config.Config.StoreInterval, config.Config.Restore),
+		server.WithCryptoKey(config.Config.PrivateKeyFile),
 	)
 	go func() {
 		err = s.Run(ctx)

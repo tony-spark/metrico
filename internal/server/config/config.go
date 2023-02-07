@@ -15,12 +15,13 @@ var (
 )
 
 type config struct {
-	Address       string        `env:"ADDRESS"`
-	StoreInterval time.Duration `env:"STORE_INTERVAL"`
-	StoreFilename string        `env:"STORE_FILE"`
-	Restore       bool          `env:"RESTORE"`
-	Key           string        `env:"KEY"`
-	DSN           string        `env:"DATABASE_DSN"`
+	Address        string        `env:"ADDRESS"`
+	StoreInterval  time.Duration `env:"STORE_INTERVAL"`
+	StoreFilename  string        `env:"STORE_FILE"`
+	Restore        bool          `env:"RESTORE"`
+	Key            string        `env:"KEY"`
+	DSN            string        `env:"DATABASE_DSN"`
+	PrivateKeyFile string        `env:"CRYPTO_KEY"`
 }
 
 func Parse() error {
@@ -30,6 +31,7 @@ func Parse() error {
 	flag.BoolVar(&Config.Restore, "r", true, "whether to load metric from file on start")
 	flag.StringVar(&Config.Key, "k", "", "hash key")
 	flag.StringVar(&Config.DSN, "d", "", "database connection string")
+	flag.StringVar(&Config.PrivateKeyFile, "crypto-key", "", "private key for message decryption (PEM)")
 	flag.Parse()
 
 	err := env.Parse(&Config)

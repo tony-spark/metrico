@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tony-spark/metrico/internal/server/services"
 
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
@@ -21,7 +22,7 @@ import (
 func TestRouter(t *testing.T) {
 	mr := storage.NewSingleValueRepository()
 	templates := web.NewEmbeddedTemplates()
-	r := NewRouter(mr, nil, nil, nil, templates)
+	r := NewRouter(services.NewMetricService(mr, nil), templates, nil, nil)
 	ts := httptest.NewServer(r.R)
 	defer ts.Close()
 

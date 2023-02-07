@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/crypto"
 	"github.com/tony-spark/metrico/internal/hash"
 	router "github.com/tony-spark/metrico/internal/server/http"
 	"github.com/tony-spark/metrico/internal/server/models"
@@ -18,6 +18,7 @@ import (
 )
 
 // Server represents server application
+// TODO: it's just a copy of config so far, rework this to use services
 type Server struct {
 	listenAddress string
 	key           string
@@ -25,6 +26,7 @@ type Server struct {
 	storeFilename string
 	storeInterval time.Duration
 	restore       bool
+	cryptoKeyFile string
 }
 
 // Option represents option function for server configuration
@@ -67,6 +69,12 @@ func WithDB(dsn string) Option {
 	}
 }
 
+func WithCryptoKey(keyFile string) Option {
+	return func(s *Server) {
+		s.cryptoKeyFile = keyFile
+	}
+}
+
 // WithFileStore configures server to store metrics in file
 //
 // # If storeInterval is not specified (0), metrics will be saved on each update
@@ -85,11 +93,13 @@ func WithFileStore(filename string, storeInterval time.Duration, restore bool) O
 // Note that Run blocks until given context is done or error occurred
 func (s Server) Run(ctx context.Context) error {
 	var r models.MetricRepository
-	var dbm models.DBManager
 	var postUpdateFn func() = nil
 	var err error
+	var opts []router.Option
 	if len(s.dsn) > 0 {
+		var dbm models.DBManager
 		dbm, err = storage.NewPgManager(s.dsn)
+		opts = append(opts, router.WithDBManager(dbm))
 		if err != nil {
 			return err
 		}
@@ -128,14 +138,25 @@ func (s Server) Run(ctx context.Context) error {
 		postUpdateFn = pservice.PostUpdate()
 	}
 
-	var h dto.Hasher
 	if len(s.key) > 0 {
-		h = hash.NewSha256Hmac(s.key)
+		h := hash.NewSha256Hmac(s.key)
+		opts = append(opts, router.WithHasher(h))
+	}
+
+	if len(s.cryptoKeyFile) > 0 {
+		var d crypto.Decryptor
+		d, err = crypto.NewRSADecryptorFromFile(s.cryptoKeyFile, "metrico")
+		if err != nil {
+			return fmt.Errorf("could not initialize decryptor: %w", err)
+		}
+		opts = append(opts, router.WithDecryptor(d))
 	}
 
 	templates := web.NewEmbeddedTemplates()
+	metricService := services.NewMetricService(r, postUpdateFn)
 
-	err = http.ListenAndServe(s.listenAddress,
-		router.NewRouter(r, postUpdateFn, h, dbm, templates).R)
+	rtr := router.NewRouter(metricService, templates, opts...)
+
+	err = http.ListenAndServe(s.listenAddress, rtr.R)
 	return fmt.Errorf("error running http server: %w", err)
 }
