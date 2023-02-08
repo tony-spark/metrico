@@ -28,7 +28,6 @@ type config struct {
 	Key            string        `env:"KEY" json:"key,omitempty"`
 	Profile        bool          `env:"PROFILING" json:"profile,omitempty"`
 	PublicKeyFile  string        `env:"CRYPTO_KEY" json:"crypto_key,omitempty"`
-	ConfigFile     string        `env:"CONFIG"`
 }
 
 func Parse() error {
@@ -54,8 +53,8 @@ func Parse() error {
 	flag.StringVar(&Config.Address, "a", Config.Address, "address to send metrics to")
 	flag.DurationVar(&Config.ReportInterval, "r", Config.ReportInterval, "report interval")
 	flag.DurationVar(&Config.PollInterval, "p", Config.PollInterval, "poll interval")
-	flag.StringVar(&Config.Key, "k", "", "hash key")
-	flag.BoolVar(&Config.Profile, "prof", false, "turn on profiling")
+	flag.StringVar(&Config.Key, "k", Config.Key, "hash key")
+	flag.BoolVar(&Config.Profile, "prof", Config.Profile, "turn on profiling")
 	flag.StringVar(&configFile, "config", "", "config file")
 	flag.StringVar(&configFile, "c", "", "shortcut to --config")
 	flag.Parse()
