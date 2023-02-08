@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
@@ -13,6 +14,7 @@ type PsUtilMetricsCollector struct {
 	ms       []model.Metric
 	vm       *mem.VirtualMemoryStat
 	cpuloads []float64
+	mu       sync.RWMutex
 }
 
 type PsUtilMetric struct {
@@ -47,6 +49,9 @@ func (p *PsUtilMetricsCollector) Metrics() []model.Metric {
 }
 
 func (p *PsUtilMetricsCollector) Update() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	p.vm, _ = mem.VirtualMemory()
 	p.cpuloads, _ = cpu.Percent(0, true)
 }
@@ -55,6 +60,9 @@ func (p *PsUtilMetricsCollector) totalMemory() float64 {
 	if p.vm == nil {
 		return 0
 	}
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	return float64(p.vm.Total)
 }
 
@@ -62,11 +70,17 @@ func (p *PsUtilMetricsCollector) freeMemory() float64 {
 	if p.vm == nil {
 		return 0
 	}
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	return float64(p.vm.Free)
 }
 
 func (p *PsUtilMetricsCollector) cpuLoad(i int) func() float64 {
 	return func() float64 {
+		p.mu.RLock()
+		defer p.mu.RUnlock()
+
 		return p.cpuloads[i]
 	}
 }

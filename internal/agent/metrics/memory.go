@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"runtime"
+	"sync/atomic"
 
 	"github.com/rs/zerolog/log"
 
@@ -150,7 +151,7 @@ func (p PollMetric) Val() interface{} {
 func (c *MemoryMetricCollector) Update() {
 	log.Trace().Msg("Reading memory statistics")
 	runtime.ReadMemStats(c.memStats)
-	c.refreshCount++
+	atomic.AddInt64(&c.refreshCount, 1)
 }
 
 func (c *MemoryMetricCollector) Metrics() []model.Metric {
