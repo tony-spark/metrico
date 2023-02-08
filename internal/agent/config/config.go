@@ -16,7 +16,7 @@ var (
 	Config = config{
 		Address:        "127.0.0.1:8080",
 		ReportInterval: 10 * time.Second,
-		PollInterval:   0,
+		PollInterval:   2 * time.Second,
 	}
 )
 
@@ -35,6 +35,7 @@ type configConfig struct {
 }
 
 func Parse() error {
+	// following mess happend case of config source priorities: config file < cmd args < env
 	var confconf configConfig
 	_, err := flags.ParseArgs(&confconf, os.Args)
 	if err != nil {
@@ -46,7 +47,8 @@ func Parse() error {
 	}
 
 	if len(confconf.ConfigFile) > 0 {
-		bs, err := os.ReadFile(confconf.ConfigFile)
+		var bs []byte
+		bs, err = os.ReadFile(confconf.ConfigFile)
 		if err != nil {
 			return fmt.Errorf("could not read config file: %w", err)
 		}
@@ -84,7 +86,7 @@ func (c *config) UnmarshalJSON(b []byte) error {
 
 	err := json.Unmarshal(b, aliasValue)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not unmarshal json: %w", err)
 	}
 
 	if len(aliasValue.PollInterval) > 0 {
