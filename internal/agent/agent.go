@@ -20,6 +20,9 @@ type MetricsAgent struct {
 	reportInterval time.Duration
 	collectors     []metrics.MetricCollector
 	transport      transports.Transport
+	mu             *sync.Mutex
+	cond           *sync.Cond
+	sending        bool
 }
 
 // Option represents option function for agent configuration
@@ -37,6 +40,8 @@ func New(options ...Option) MetricsAgent {
 		},
 		transport: transports.NewHTTP("http://127.0.0.1:8080"),
 	}
+	a.mu = new(sync.Mutex)
+	a.cond = sync.NewCond(a.mu)
 
 	for _, opt := range options {
 		opt(&a)
@@ -83,27 +88,25 @@ func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, t
 	}
 }
 
-func (a MetricsAgent) poll(ctx context.Context) {
+func (a MetricsAgent) poll() {
 	log.Trace().Msg("poll")
 	for _, collector := range a.collectors {
-		select {
-		case <-ctx.Done():
-			log.Warn().Msg("poll cancelled via context")
-			return
-		default:
-		}
-
 		collector.Update()
-		for _, metric := range collector.Metrics() {
-			log.Debug().Msgf("got %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
-		}
+		// for _, metric := range collector.Metrics() {
+		// 	log.Debug().Msgf("got %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
+		// }
 	}
 }
 
-func (a MetricsAgent) report(ctx context.Context) {
+func (a MetricsAgent) report() {
 	log.Info().Msg("sending report")
-	timeoutCtx, cancel := context.WithTimeout(ctx, a.reportInterval)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), a.reportInterval)
 	defer cancel()
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.sending = true
 
 	var wg sync.WaitGroup
 
@@ -114,7 +117,7 @@ func (a MetricsAgent) report(ctx context.Context) {
 
 			select {
 			case <-timeoutCtx.Done():
-				log.Warn().Msg("sending cancelled via context (timeout?)")
+				log.Warn().Msg("sending cancelled timeout")
 				return
 			default:
 			}
@@ -125,6 +128,7 @@ func (a MetricsAgent) report(ctx context.Context) {
 				var ne net.Error
 				if errors.As(err, &ne) {
 					log.Info().Msg("network error, interrupting current report...")
+					a.cond.Broadcast()
 					return
 				}
 			}
@@ -132,11 +136,13 @@ func (a MetricsAgent) report(ctx context.Context) {
 	}
 
 	wg.Wait()
+	a.sending = false
+	a.cond.Broadcast()
 }
 
 // Run starts to collect metrics and send it via transport
 //
-// Note that Run blocks until given context is cancelled
+// Note that Run blocks until given context is cancelled or Stop called
 func (a MetricsAgent) Run(ctx context.Context) {
 	pollTicker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)
@@ -148,11 +154,11 @@ func (a MetricsAgent) Run(ctx context.Context) {
 	for {
 		select {
 		case <-pollTicker.C:
-			go a.poll(ctx)
+			go a.poll()
 		case <-reportTicker.C:
-			go a.report(ctx)
+			go a.report()
 		case <-ctx.Done():
-			log.Info().Msg("Agent stopped via context")
+			log.Info().Msg("agent stopped via context")
 			return
 		}
 	}
@@ -160,5 +166,9 @@ func (a MetricsAgent) Run(ctx context.Context) {
 
 // Stop gracefully stops agent
 func (a MetricsAgent) Stop() {
-
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.sending {
+		a.cond.Wait()
+	}
 }

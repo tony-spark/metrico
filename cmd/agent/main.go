@@ -79,5 +79,10 @@ func main() {
 
 	<-terminateSignal
 	cancel()
-	log.Info().Msg("Application interrupted via system signal")
+
+	log.Info().Msg("shutting down gracefully...")
+
+	agent.Stop()
+
+	log.Info().Msg("agent shut down")
 }
