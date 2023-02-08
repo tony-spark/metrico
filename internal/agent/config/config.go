@@ -3,13 +3,14 @@ package config
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/caarlos0/env/v6"
-	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog/log"
+	configUtil "github.com/tony-spark/metrico/internal/config"
 )
 
 var (
@@ -21,34 +22,25 @@ var (
 )
 
 type config struct {
-	Address        string        `short:"a" env:"ADDRESS" json:"address,omitempty" description:"address to send metrics to" `
-	ReportInterval time.Duration `short:"r" env:"REPORT_INTERVAL" json:"report_interval,omitempty" description:"report interval" `
-	PollInterval   time.Duration `short:"p" env:"POLL_INTERVAL" json:"poll_interval,omitempty" description:"poll interval" `
-	Key            string        `short:"k" env:"KEY" json:"key,omitempty" description:"hash key"`
-	Profile        bool          `long:"prof" env:"PROFILING" json:"profile,omitempty"  description:"turn on profiling"`
-	PublicKeyFile  string        `long:"crypto-key" env:"CRYPTO_KEY" json:"crypto_key,omitempty" description:"public key for message encryption (PEM)"`
-	ConfigFile     string        `short:"c" long:"config" env:"CONFIG" description:"configuration file (json)"`
-}
-
-type configConfig struct {
-	ConfigFile string `short:"c" long:"config" env:"CONFIG" description:"configuration file (json)"`
+	Address        string        `env:"ADDRESS" json:"address,omitempty"`
+	ReportInterval time.Duration `env:"REPORT_INTERVAL" json:"report_interval,omitempty"`
+	PollInterval   time.Duration `env:"POLL_INTERVAL" json:"poll_interval,omitempty"`
+	Key            string        `env:"KEY" json:"key,omitempty"`
+	Profile        bool          `env:"PROFILING" json:"profile,omitempty"`
+	PublicKeyFile  string        `env:"CRYPTO_KEY" json:"crypto_key,omitempty"`
+	ConfigFile     string        `env:"CONFIG"`
 }
 
 func Parse() error {
-	// following mess happend case of config source priorities: config file < cmd args < env
-	var confconf configConfig
-	_, err := flags.ParseArgs(&confconf, os.Args)
+	// the following mess happens cause of config source priorities: config file < cmd args < env
+	configFile, err := configUtil.ParseConfigFileParameter()
 	if err != nil {
-		return fmt.Errorf("could not parse c/config option: %w", err)
-	}
-	err = env.Parse(&confconf)
-	if err != nil {
-		return fmt.Errorf("could not parse CONFIG env var: %w", err)
+		return fmt.Errorf("coult not parse config file parameter: %w", err)
 	}
 
-	if len(confconf.ConfigFile) > 0 {
+	if len(configFile) > 0 {
 		var bs []byte
-		bs, err = os.ReadFile(confconf.ConfigFile)
+		bs, err = os.ReadFile(configFile)
 		if err != nil {
 			return fmt.Errorf("could not read config file: %w", err)
 		}
@@ -59,10 +51,14 @@ func Parse() error {
 		}
 	}
 
-	_, err = flags.Parse(&Config)
-	if err != nil {
-		return fmt.Errorf("could not parse flags: %w", err)
-	}
+	flag.StringVar(&Config.Address, "a", Config.Address, "address to send metrics to")
+	flag.DurationVar(&Config.ReportInterval, "r", Config.ReportInterval, "report interval")
+	flag.DurationVar(&Config.PollInterval, "p", Config.PollInterval, "poll interval")
+	flag.StringVar(&Config.Key, "k", "", "hash key")
+	flag.BoolVar(&Config.Profile, "prof", false, "turn on profiling")
+	flag.StringVar(&configFile, "config", "", "config file")
+	flag.StringVar(&configFile, "c", "", "shortcut to --config")
+	flag.Parse()
 
 	err = env.Parse(&Config)
 	if err != nil {
