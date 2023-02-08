@@ -43,17 +43,30 @@ func main() {
 		server.WithFileStore(config.Config.StoreFilename, config.Config.StoreInterval, config.Config.Restore),
 		server.WithCryptoKey(config.Config.PrivateKeyFile),
 	)
+
+	shutdownSignal := make(chan os.Signal, 1)
+	signal.Notify(shutdownSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	shutdownDone := make(chan struct{})
+
 	go func() {
-		err = s.Run(ctx)
+		<-shutdownSignal
+
+		log.Info().Msg("shutting down gracefully...")
+		err = s.Shutdown(context.Background())
 		if err != nil {
-			log.Fatal().Err(err).Msg("Error running server")
+			log.Fatal().Err(err).Msg("failed to shut down gracefully")
 		}
+
+		cancel()
+		close(shutdownDone)
 	}()
 
-	terminateSignal := make(chan os.Signal, 1)
-	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
+	err = s.Run(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error running server")
+	}
 
-	<-terminateSignal
-	cancel()
-	log.Info().Msg("Server interrupted")
+	<-shutdownDone
+	log.Info().Msg("server shut down gracefully")
 }

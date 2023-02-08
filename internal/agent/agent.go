@@ -136,7 +136,7 @@ func (a MetricsAgent) report(ctx context.Context) {
 
 // Run starts to collect metrics and send it via transport
 //
-// Note that Run blocks until given context is done
+// Note that Run blocks until given context is cancelled
 func (a MetricsAgent) Run(ctx context.Context) {
 	pollTicker := time.NewTicker(a.pollInterval)
 	reportTicker := time.NewTicker(a.reportInterval)
@@ -156,4 +156,9 @@ func (a MetricsAgent) Run(ctx context.Context) {
 			return
 		}
 	}
+}
+
+// Stop gracefully stops agent
+func (a MetricsAgent) Stop() {
+
 }

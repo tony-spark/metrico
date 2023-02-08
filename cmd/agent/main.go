@@ -75,7 +75,7 @@ func main() {
 	}
 
 	terminateSignal := make(chan os.Signal, 1)
-	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-terminateSignal
 	cancel()
