@@ -78,16 +78,6 @@ func WithCollectors(cs []metrics.MetricCollector) Option {
 	}
 }
 
-// NewMetricsAgent creates new agent with given pollInterval, reportInterval, transport and collectors
-func NewMetricsAgent(pollInterval time.Duration, reportInterval time.Duration, transport transports.Transport, collectors []metrics.MetricCollector) *MetricsAgent {
-	return &MetricsAgent{
-		transport:      transport,
-		pollInterval:   pollInterval,
-		reportInterval: reportInterval,
-		collectors:     collectors,
-	}
-}
-
 func (a MetricsAgent) poll() {
 	log.Trace().Msg("poll")
 	for _, collector := range a.collectors {
