@@ -184,7 +184,18 @@ func getClientIP(URL string) string {
 	if err != nil {
 		log.Error().Err(err).Msg("could not dial address to discover own IP")
 	}
-	defer conn.Close()
+	defer func() {
+		if conn != nil {
+			err := conn.Close()
+			if err != nil {
+				log.Error().Err(err).Msg("error closing connection")
+			}
+		}
+	}()
+
+	if conn == nil {
+		return ""
+	}
 
 	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }
