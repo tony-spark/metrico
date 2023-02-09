@@ -29,6 +29,7 @@ type Server struct {
 	storeInterval time.Duration
 	restore       bool
 	cryptoKeyFile string
+	trustedSubnet string
 	dbm           models.DBManager
 	store         models.RepositoryPersistence
 	r             models.MetricRepository
@@ -55,9 +56,10 @@ func New(options ...Option) Server {
 }
 
 // WithHTTPServer configures server to receive metrics via HTTP
-func WithHTTPServer(listenAddress string) Option {
+func WithHTTPServer(listenAddress string, trustedSubnet string) Option {
 	return func(s *Server) {
 		s.listenAddress = listenAddress
+		s.trustedSubnet = trustedSubnet
 	}
 }
 
@@ -137,6 +139,15 @@ func (s *Server) Run(ctx context.Context) error {
 			return fmt.Errorf("could not initialize decryptor: %w", err)
 		}
 		opts = append(opts, router.WithDecryptor(d))
+	}
+
+	if len(s.trustedSubnet) > 0 {
+		var subnet *net.IPNet
+		_, subnet, err = net.ParseCIDR(s.trustedSubnet)
+		if err != nil {
+			return fmt.Errorf("could not parse subnet: %w", err)
+		}
+		opts = append(opts, router.WithTrustedSubNet(subnet))
 	}
 
 	templates := web.NewEmbeddedTemplates()

@@ -30,6 +30,7 @@ type config struct {
 	Key            string        `env:"KEY" json:"key,omitempty"`
 	DSN            string        `env:"DATABASE_DSN" json:"database_dsn,omitempty"`
 	PrivateKeyFile string        `env:"CRYPTO_KEY" json:"crypto_key,omitempty"`
+	TrustedSubnet  string        `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
 }
 
 func Parse() error {
@@ -59,6 +60,7 @@ func Parse() error {
 	flag.StringVar(&Config.Key, "k", Config.Key, "hash key")
 	flag.StringVar(&Config.DSN, "d", Config.DSN, "database connection string")
 	flag.StringVar(&Config.PrivateKeyFile, "crypto-key", Config.PrivateKeyFile, "private key for message decryption (PEM)")
+	flag.StringVar(&Config.TrustedSubnet, "t", Config.TrustedSubnet, "trusted subnet for clients")
 	flag.StringVar(&configFile, "config", "", "config file")
 	flag.StringVar(&configFile, "c", "", "shortcut to --config")
 	flag.Parse()

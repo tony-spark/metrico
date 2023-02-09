@@ -37,7 +37,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := server.New(
-		server.WithHTTPServer(config.Config.Address),
+		server.WithHTTPServer(config.Config.Address, config.Config.TrustedSubnet),
 		server.WithDB(config.Config.DSN),
 		server.WithHashKey(config.Config.Key),
 		server.WithFileStore(config.Config.StoreFilename, config.Config.StoreInterval, config.Config.Restore),
