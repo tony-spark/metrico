@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -25,6 +28,7 @@ type HTTPTransport struct {
 	client    *resty.Client
 	hasher    dto.Hasher
 	encryptor crypto.Encryptor
+	clientIP  string
 }
 
 type HTTPOption func(t *HTTPTransport)
@@ -41,6 +45,8 @@ func NewHTTP(baseURL string, options ...HTTPOption) Transport {
 	for _, opt := range options {
 		opt(&t)
 	}
+
+	t.clientIP = getClientIP(baseURL)
 
 	return t
 }
@@ -75,6 +81,8 @@ func (h HTTPTransport) send(metric model.Metric) error {
 		SetPathParam("name", metric.ID()).
 		SetPathParam("value", metric.String()).
 		SetHeader("Content-Type", "text/plain")
+
+	req.SetHeader("X-Real-IP", h.clientIP)
 	resp, err := req.Post(endpointSend)
 	if err != nil {
 		return fmt.Errorf("could not send metric: %w", err)
@@ -105,6 +113,7 @@ func (h HTTPTransport) sendJSON(metric model.Metric) error {
 	}
 	req := h.client.R().
 		SetBody(d)
+	req.SetHeader("X-Real-IP", h.clientIP)
 	resp, err := req.Post(endpointSendJSON)
 	if err != nil {
 		return fmt.Errorf("could not send json: %w", err)
@@ -132,6 +141,7 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 		return err
 	}
 
+	req.SetHeader("X-Real-IP", h.clientIP)
 	resp, err := req.Post(endpointSendJSONBatch)
 	if err != nil {
 		return fmt.Errorf("could not send batch json: %w", err)
@@ -162,4 +172,19 @@ func (h HTTPTransport) encodeInRequest(obj interface{}, r *resty.Request) error 
 		r.SetBody(bs)
 	}
 	return nil
+}
+
+func getClientIP(URL string) string {
+	u, err := url.Parse(URL)
+	if err != nil {
+		log.Error().Err(err).Msg("could not parse URL")
+	}
+	hostname := strings.TrimPrefix(u.Hostname(), "www.")
+	conn, err := net.Dial("udp", hostname+":80")
+	if err != nil {
+		log.Error().Err(err).Msg("could not dial address to discover own IP")
+	}
+	defer conn.Close()
+
+	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }
