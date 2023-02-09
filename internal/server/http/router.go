@@ -2,6 +2,8 @@
 package http
 
 import (
+	"net"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog"
@@ -20,12 +22,13 @@ import (
 // @Version 1.0
 
 type Router struct {
-	R         chi.Router
-	ms        *services.MetricService
-	templates web.TemplateProvider
-	dbm       models.DBManager
-	h         dto.Hasher
-	d         crypto.Decryptor
+	R             chi.Router
+	ms            *services.MetricService
+	templates     web.TemplateProvider
+	dbm           models.DBManager
+	h             dto.Hasher
+	d             crypto.Decryptor
+	trustedSubNet *net.IPNet
 }
 
 type Option func(r *Router)
@@ -48,6 +51,12 @@ func WithDecryptor(d crypto.Decryptor) Option {
 	}
 }
 
+func WithTrustedSubNet(subnet *net.IPNet) Option {
+	return func(r *Router) {
+		r.trustedSubNet = subnet
+	}
+}
+
 func NewRouter(metricService *services.MetricService, templates web.TemplateProvider, options ...Option) *Router {
 	r := chi.NewRouter()
 
@@ -61,8 +70,11 @@ func NewRouter(metricService *services.MetricService, templates web.TemplateProv
 		opt(router)
 	}
 
-	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+	if router.trustedSubNet != nil {
+		r.Use(SubnetClientFilter(*router.trustedSubNet))
+	}
+	r.Use(middleware.RequestID)
 	r.Use(httplog.RequestLogger(log.Logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
