@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/httplog v0.2.5
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang-migrate/migrate/v4 v4.15.2
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jackc/pgx/v5 v5.0.4
 	github.com/kisielk/errcheck v1.6.3
 	github.com/rs/zerolog v1.28.0
@@ -31,7 +32,6 @@ require (
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/josharian/intern v1.0.0 // indirect

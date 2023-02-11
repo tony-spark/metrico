@@ -4,11 +4,13 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
-	"github.com/tony-spark/metrico/internal/dto"
+	"github.com/tony-spark/metrico/internal/crypto"
 	"github.com/tony-spark/metrico/internal/hash"
 	router "github.com/tony-spark/metrico/internal/server/http"
 	"github.com/tony-spark/metrico/internal/server/models"
@@ -18,6 +20,7 @@ import (
 )
 
 // Server represents server application
+// TODO: it's just a copy of config so far, rework this to use services
 type Server struct {
 	listenAddress string
 	key           string
@@ -25,6 +28,11 @@ type Server struct {
 	storeFilename string
 	storeInterval time.Duration
 	restore       bool
+	cryptoKeyFile string
+	dbm           models.DBManager
+	store         models.RepositoryPersistence
+	r             models.MetricRepository
+	srv           *http.Server
 }
 
 // Option represents option function for server configuration
@@ -67,6 +75,12 @@ func WithDB(dsn string) Option {
 	}
 }
 
+func WithCryptoKey(keyFile string) Option {
+	return func(s *Server) {
+		s.cryptoKeyFile = keyFile
+	}
+}
+
 // WithFileStore configures server to store metrics in file
 //
 // # If storeInterval is not specified (0), metrics will be saved on each update
@@ -82,60 +96,93 @@ func WithFileStore(filename string, storeInterval time.Duration, restore bool) O
 
 // Run starts a server
 //
-// Note that Run blocks until given context is done or error occurred
-func (s Server) Run(ctx context.Context) error {
-	var r models.MetricRepository
-	var dbm models.DBManager
+// Note that Run blocks until Shutdown called
+func (s *Server) Run(ctx context.Context) error {
 	var postUpdateFn func() = nil
 	var err error
+	var opts []router.Option
 	if len(s.dsn) > 0 {
-		dbm, err = storage.NewPgManager(s.dsn)
+		s.dbm, err = storage.NewPgManager(s.dsn)
+		opts = append(opts, router.WithDBManager(s.dbm))
 		if err != nil {
 			return err
 		}
-		r = dbm.MetricRepository()
-		defer func() {
-			err = dbm.Close()
-			if err != nil {
-				log.Error().Err(err).Msg("error closing database manager")
-			}
-		}()
+		s.r = s.dbm.MetricRepository()
 	} else {
-		var store models.RepositoryPersistence
-		r = storage.NewSingleValueRepository()
-		store, err = storage.NewJSONFilePersistence(s.storeFilename)
+		s.r = storage.NewSingleValueRepository()
+		s.store, err = storage.NewJSONFilePersistence(s.storeFilename)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			err = store.Save(ctx, r)
-			if err != nil {
-				log.Error().Err(err).Msg("error saving metrics store")
-			}
-			errc := store.Close()
-			if errc != nil {
-				log.Error().Err(err).Msg("error closing store")
-			}
-		}()
 		if s.restore {
-			err = store.Load(ctx, r)
+			err = s.store.Load(ctx, s.r)
 			if err != nil {
 				return err
 			}
 		}
-		pservice := services.NewPersistenceService(store, s.storeInterval, r)
+		pservice := services.NewPersistenceService(s.store, s.storeInterval, s.r)
 		pservice.Run(ctx)
 		postUpdateFn = pservice.PostUpdate()
 	}
 
-	var h dto.Hasher
 	if len(s.key) > 0 {
-		h = hash.NewSha256Hmac(s.key)
+		h := hash.NewSha256Hmac(s.key)
+		opts = append(opts, router.WithHasher(h))
+	}
+
+	if len(s.cryptoKeyFile) > 0 {
+		var d crypto.Decryptor
+		d, err = crypto.NewRSADecryptorFromFile(s.cryptoKeyFile, "metrico")
+		if err != nil {
+			return fmt.Errorf("could not initialize decryptor: %w", err)
+		}
+		opts = append(opts, router.WithDecryptor(d))
 	}
 
 	templates := web.NewEmbeddedTemplates()
+	metricService := services.NewMetricService(s.r, postUpdateFn)
 
-	err = http.ListenAndServe(s.listenAddress,
-		router.NewRouter(r, postUpdateFn, h, dbm, templates).R)
-	return fmt.Errorf("error running http server: %w", err)
+	rtr := router.NewRouter(metricService, templates, opts...)
+
+	s.srv = &http.Server{
+		Addr:    s.listenAddress,
+		Handler: rtr.R,
+	}
+	s.srv.SetKeepAlivesEnabled(false)
+	err = s.srv.ListenAndServe()
+	if err != http.ErrServerClosed && err != net.ErrClosed {
+		return fmt.Errorf("error running http server: %w", err)
+	}
+	return nil
+}
+
+func (s Server) Shutdown(ctx context.Context) error {
+	result := s.srv.Shutdown(ctx)
+	if result == nil {
+		log.Info().Msg("HTTP server shut down")
+	}
+	if s.store != nil {
+		err := s.store.Save(ctx, s.r)
+		if err != nil {
+			result = multierror.Append(result, err)
+			log.Error().Err(err).Msg("error saving metrics store")
+		}
+		log.Info().Msg("saved to store")
+		errc := s.store.Close()
+		if errc != nil {
+			result = multierror.Append(result, errc)
+			log.Error().Err(err).Msg("error closing store")
+		}
+		log.Info().Msg("store closed")
+	}
+	if s.dbm != nil {
+		err := s.dbm.Close()
+		if err != nil {
+			result = multierror.Append(err)
+			log.Error().Err(err).Msg("error closing database manager")
+		} else {
+			log.Info().Msg("database manager closed")
+		}
+	}
+	return result
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/crypto"
 
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
@@ -19,22 +20,45 @@ import (
 // @Version 1.0
 
 type Router struct {
-	dbm       models.DBManager
-	ms        *services.MetricService
 	R         chi.Router
-	h         dto.Hasher
+	ms        *services.MetricService
 	templates web.TemplateProvider
+	dbm       models.DBManager
+	h         dto.Hasher
+	d         crypto.Decryptor
 }
 
-func NewRouter(repo models.MetricRepository, postUpdateFn func(), h dto.Hasher, dbm models.DBManager, templates web.TemplateProvider) *Router {
+type Option func(r *Router)
+
+func WithHasher(h dto.Hasher) Option {
+	return func(r *Router) {
+		r.h = h
+	}
+}
+
+func WithDBManager(dbm models.DBManager) Option {
+	return func(r *Router) {
+		r.dbm = dbm
+	}
+}
+
+func WithDecryptor(d crypto.Decryptor) Option {
+	return func(r *Router) {
+		r.d = d
+	}
+}
+
+func NewRouter(metricService *services.MetricService, templates web.TemplateProvider, options ...Option) *Router {
 	r := chi.NewRouter()
 
 	router := &Router{
-		dbm:       dbm,
-		ms:        services.NewMetricService(repo, postUpdateFn),
+		ms:        metricService,
 		R:         r,
-		h:         h,
 		templates: templates,
+	}
+
+	for _, opt := range options {
+		opt(router)
 	}
 
 	r.Use(middleware.RequestID)

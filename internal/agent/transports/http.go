@@ -2,12 +2,14 @@ package transports
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/crypto"
 
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
@@ -20,24 +22,39 @@ const (
 )
 
 type HTTPTransport struct {
-	client *resty.Client
-	hasher dto.Hasher
+	client    *resty.Client
+	hasher    dto.Hasher
+	encryptor crypto.Encryptor
 }
 
-func NewHTTPTransport(baseURL string) *HTTPTransport {
+type HTTPOption func(t *HTTPTransport)
+
+func NewHTTP(baseURL string, options ...HTTPOption) Transport {
+	var t HTTPTransport
+
 	client := resty.New()
 	client.SetBaseURL(baseURL)
 	// TODO think about better timeout value
 	client.SetTimeout(1 * time.Second)
-	return &HTTPTransport{
-		client: client,
+	t.client = client
+
+	for _, opt := range options {
+		opt(&t)
+	}
+
+	return t
+}
+
+func WithHasher(h dto.Hasher) HTTPOption {
+	return func(t *HTTPTransport) {
+		t.hasher = h
 	}
 }
 
-func NewHTTPTransportHashed(baseURL string, hasher dto.Hasher) *HTTPTransport {
-	t := NewHTTPTransport(baseURL)
-	t.hasher = hasher
-	return t
+func WithEncryptor(e crypto.Encryptor) HTTPOption {
+	return func(t *HTTPTransport) {
+		t.encryptor = e
+	}
 }
 
 func (h HTTPTransport) SendMetric(metric model.Metric) error {
@@ -109,8 +126,12 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 		dtos = append(dtos, *mdto)
 	}
 	req := h.client.R().
-		SetContext(ctx).
-		SetBody(dtos)
+		SetContext(ctx)
+	err := h.encodeInRequest(dtos, req)
+	if err != nil {
+		return err
+	}
+
 	resp, err := req.Post(endpointSendJSONBatch)
 	if err != nil {
 		return fmt.Errorf("could not send batch json: %w", err)
@@ -120,6 +141,25 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 	}
 	for _, metric := range mx {
 		log.Info().Msgf("sent in batch %v (%v) = %v", metric.ID(), metric.Type(), metric.String())
+	}
+	return nil
+}
+
+func (h HTTPTransport) encodeInRequest(obj interface{}, r *resty.Request) error {
+	bs, err := json.Marshal(obj)
+	if err != nil {
+		return fmt.Errorf("could not marshal json: %w", err)
+	}
+	r.SetHeader("Content-Type", "application/json")
+	if h.encryptor != nil {
+		encrypted, err := h.encryptor.Encrypt(bs)
+		if err != nil {
+			return fmt.Errorf("could not encrypt message: %w", err)
+		}
+		r.SetHeader("X-Encrypted", "true")
+		r.SetBody(encrypted)
+	} else {
+		r.SetBody(bs)
 	}
 	return nil
 }

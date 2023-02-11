@@ -14,6 +14,9 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/crypto"
+	"github.com/tony-spark/metrico/internal/hash"
 
 	a "github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/config"
@@ -39,8 +42,21 @@ func main() {
 
 	baseURL := "http://" + strings.Trim(config.Config.Address, "\"")
 
+	var transportOptions []transports.HTTPOption
+	if len(config.Config.Key) > 0 {
+		transportOptions = append(transportOptions, transports.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
+	}
+	if len(config.Config.PublicKeyFile) > 0 {
+		encryptor, err := crypto.NewRSAEncryptorFromFile(config.Config.PublicKeyFile, "metrico")
+		if err != nil {
+			log.Fatal().Err(err).Msg("could not parse public key")
+		}
+		transportOptions = append(transportOptions, transports.WithEncryptor(encryptor))
+	}
+	t := transports.NewHTTP(baseURL, transportOptions...)
+
 	agent := a.New(
-		a.WithHTTPTransport(baseURL, config.Config.Key),
+		a.WithTransport(t),
 		a.WithPollInterval(config.Config.PollInterval),
 		a.WithReportInterval(config.Config.ReportInterval),
 	)
@@ -59,9 +75,14 @@ func main() {
 	}
 
 	terminateSignal := make(chan os.Signal, 1)
-	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(terminateSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	<-terminateSignal
 	cancel()
-	log.Info().Msg("Application interrupted via system signal")
+
+	log.Info().Msg("shutting down gracefully...")
+
+	agent.Stop()
+
+	log.Info().Msg("agent shut down")
 }

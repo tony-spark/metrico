@@ -116,6 +116,8 @@ func main() {
 	wConfig.IgnoreSigRegexps = append(wConfig.IgnoreSigRegexps,
 		`.*github.com/tony-spark/metrico/internal/.*`, // ignore error wrapping in internal packages
 	)
+	wConfig.IgnoreSigs = append(wConfig.IgnoreSigs,
+		"func github.com/hashicorp/go-multierror.Append(err error, errs ...error) *github.com/hashicorp/go-multierror.Error")
 	checks = append(checks, wrapcheck.NewAnalyzer(wConfig))
 
 	checks = append(checks, osexit.Analyzer)
