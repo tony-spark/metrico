@@ -14,9 +14,9 @@ func Example() {
 	a := agent.New(
 		agent.WithReportInterval(15*time.Second),
 		agent.WithTransport(transports.NewHTTP("http://localhost:3000")),
-		agent.WithCollectors([]metrics.MetricCollector{
+		agent.WithCollectors(
 			metrics.NewRandomMetricCollector(),
-		}),
+		),
 	)
 
 	go a.Run(context.Background())
