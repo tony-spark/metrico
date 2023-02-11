@@ -32,7 +32,7 @@ type config struct {
 
 func Parse() error {
 	// the following mess happens cause of config source priorities: config file < cmd args < env
-	configFile, err := configUtil.ParseConfigFileParameter()
+	configFile, err := configUtil.ParseConfigFileParameter(os.Args)
 	if err != nil {
 		return fmt.Errorf("coult not parse config file parameter: %w", err)
 	}
