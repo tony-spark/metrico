@@ -72,7 +72,7 @@ func WithReportInterval(interval time.Duration) Option {
 }
 
 // WithCollectors configures agent with given set of metrics collectors
-func WithCollectors(cs []metrics.MetricCollector) Option {
+func WithCollectors(cs ...metrics.MetricCollector) Option {
 	return func(a *MetricsAgent) {
 		a.collectors = cs
 	}
