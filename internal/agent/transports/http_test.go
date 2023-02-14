@@ -124,3 +124,30 @@ func TestHTTPTransportHashed(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestHTTPTransport_SendMetrics(t *testing.T) {
+	mx := []model.Metric{
+		metrics.NewGaugeMetric("Batch_Gauge1", 5.0),
+		metrics.NewCounterMetric("Batch_Counter1", 5),
+	}
+	expected := make([]dto.Metric, 0, len(mx))
+	for _, m := range mx {
+		expected = append(expected, *dto.NewMetric(m))
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/updates/", r.URL.Path)
+		bs, err := io.ReadAll(r.Body)
+		assert.Nil(t, err)
+		var ms []dto.Metric
+		err = json.Unmarshal(bs, &ms)
+		assert.Nil(t, err)
+		assert.Equal(t, expected, ms)
+	}))
+	defer server.Close()
+
+	transport := NewHTTP(server.URL)
+	err := transport.SendMetrics(mx)
+	t.Run("send metrics with no error", func(t *testing.T) {
+		assert.Nil(t, err)
+	})
+}
