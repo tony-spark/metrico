@@ -16,13 +16,11 @@ import (
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/storage"
-	"github.com/tony-spark/metrico/internal/server/web"
 )
 
 func TestRouter(t *testing.T) {
 	mr := storage.NewSingleValueRepository()
-	templates := web.NewEmbeddedTemplates()
-	r := NewRouter(services.NewMetricService(mr, nil), templates)
+	r := NewRouter(services.NewMetricService(mr, nil))
 	ts := httptest.NewServer(r.R)
 	defer ts.Close()
 

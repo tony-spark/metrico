@@ -16,7 +16,6 @@ import (
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/services"
 	"github.com/tony-spark/metrico/internal/server/storage"
-	"github.com/tony-spark/metrico/internal/server/web"
 )
 
 // Server represents server application
@@ -150,16 +149,15 @@ func (s *Server) Run(ctx context.Context) error {
 		opts = append(opts, router.WithTrustedSubNet(subnet))
 	}
 
-	templates := web.NewEmbeddedTemplates()
 	metricService := services.NewMetricService(s.r, postUpdateFn)
 
-	rtr := router.NewRouter(metricService, templates, opts...)
+	rtr := router.NewRouter(metricService, opts...)
 
 	s.srv = &http.Server{
 		Addr:    s.listenAddress,
 		Handler: rtr.R,
 	}
-	s.srv.SetKeepAlivesEnabled(false)
+
 	err = s.srv.ListenAndServe()
 	if err != http.ErrServerClosed && err != net.ErrClosed {
 		return fmt.Errorf("error running http server: %w", err)

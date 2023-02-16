@@ -57,13 +57,13 @@ func WithTrustedSubNet(subnet *net.IPNet) Option {
 	}
 }
 
-func NewRouter(metricService *services.MetricService, templates web.TemplateProvider, options ...Option) *Router {
+func NewRouter(metricService *services.MetricService, options ...Option) *Router {
 	r := chi.NewRouter()
 
 	router := &Router{
 		ms:        metricService,
 		R:         r,
-		templates: templates,
+		templates: web.NewEmbeddedTemplates(),
 	}
 
 	for _, opt := range options {
