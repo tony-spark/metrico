@@ -12,24 +12,31 @@ import (
 type PersistenceService struct {
 	p             models.RepositoryPersistence
 	storeInterval time.Duration
+	restore       bool
 	r             models.MetricRepository
 	postUpdate    func()
 }
 
-func NewPersistenceService(p models.RepositoryPersistence, storeInterval time.Duration,
-	r models.MetricRepository) *PersistenceService {
+func NewPersistenceService(p models.RepositoryPersistence, storeInterval time.Duration, restore bool, r models.MetricRepository) *PersistenceService {
 	return &PersistenceService{
 		p:             p,
 		storeInterval: storeInterval,
+		restore:       restore,
 		r:             r,
 	}
 }
 
-func (s *PersistenceService) Run(ctx context.Context) {
+func (s PersistenceService) Run(ctx context.Context) error {
+	if s.restore {
+		err := s.p.Load(ctx, s.r)
+		if err != nil {
+			return err
+		}
+	}
 	if s.storeInterval > 0 {
-		saveTicker := time.NewTicker(s.storeInterval)
-		defer saveTicker.Stop()
 		go func() {
+			saveTicker := time.NewTicker(s.storeInterval)
+			defer saveTicker.Stop()
 			for {
 				select {
 				case <-saveTicker.C:
@@ -50,6 +57,7 @@ func (s *PersistenceService) Run(ctx context.Context) {
 			}
 		}
 	}
+	return nil
 }
 
 func (s PersistenceService) PostUpdate() func() {

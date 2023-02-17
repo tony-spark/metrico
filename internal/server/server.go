@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -21,18 +20,18 @@ import (
 // Server represents server application
 // TODO: it's just a copy of config so far, rework this to use services
 type Server struct {
-	listenAddress string
-	key           string
-	dsn           string
-	storeFilename string
-	storeInterval time.Duration
-	restore       bool
-	cryptoKeyFile string
-	trustedSubnet string
-	dbm           models.DBManager
-	store         models.RepositoryPersistence
-	r             models.MetricRepository
-	srv           *http.Server
+	listenAddress  string
+	key            string
+	dsn            string
+	storeFilename  string
+	storeInterval  time.Duration
+	restore        bool
+	cryptoKeyFile  string
+	trustedSubnet  string
+	dbm            models.DBManager
+	store          models.RepositoryPersistence
+	r              models.MetricRepository
+	httpController *router.Router
 }
 
 // Option represents option function for server configuration
@@ -101,7 +100,9 @@ func WithFileStore(filename string, storeInterval time.Duration, restore bool) O
 func (s *Server) Run(ctx context.Context) error {
 	var postUpdateFn func() = nil
 	var err error
-	var opts []router.Option
+	opts := []router.Option{
+		router.WithListenAddress(s.listenAddress),
+	}
 	if len(s.dsn) > 0 {
 		s.dbm, err = storage.NewPgManager(s.dsn)
 		opts = append(opts, router.WithDBManager(s.dbm))
@@ -115,14 +116,11 @@ func (s *Server) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if s.restore {
-			err = s.store.Load(ctx, s.r)
-			if err != nil {
-				return err
-			}
+		pservice := services.NewPersistenceService(s.store, s.storeInterval, s.restore, s.r)
+		err = pservice.Run(ctx)
+		if err != nil {
+			return err
 		}
-		pservice := services.NewPersistenceService(s.store, s.storeInterval, s.r)
-		pservice.Run(ctx)
 		postUpdateFn = pservice.PostUpdate()
 	}
 
@@ -151,24 +149,15 @@ func (s *Server) Run(ctx context.Context) error {
 
 	metricService := services.NewMetricService(s.r, postUpdateFn)
 
-	rtr := router.NewRouter(metricService, opts...)
+	s.httpController = router.NewRouter(metricService, opts...)
 
-	s.srv = &http.Server{
-		Addr:    s.listenAddress,
-		Handler: rtr.R,
-	}
-
-	err = s.srv.ListenAndServe()
-	if err != http.ErrServerClosed && err != net.ErrClosed {
-		return fmt.Errorf("error running http server: %w", err)
-	}
-	return nil
+	return s.httpController.Run()
 }
 
 func (s Server) Shutdown(ctx context.Context) error {
-	result := s.srv.Shutdown(ctx)
+	result := s.httpController.Shutdown(ctx)
 	if result == nil {
-		log.Info().Msg("HTTP server shut down")
+		log.Info().Msg("HTTP controller shut down")
 	}
 	if s.store != nil {
 		err := s.store.Save(ctx, s.r)

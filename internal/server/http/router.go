@@ -2,7 +2,10 @@
 package http
 
 import (
+	"context"
+	"fmt"
 	"net"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,6 +25,8 @@ import (
 // @Version 1.0
 
 type Router struct {
+	listenAddress string
+	srv           *http.Server
 	R             chi.Router
 	ms            *services.MetricService
 	templates     web.TemplateProvider
@@ -32,6 +37,12 @@ type Router struct {
 }
 
 type Option func(r *Router)
+
+func WithListenAddress(addr string) Option {
+	return func(r *Router) {
+		r.listenAddress = addr
+	}
+}
 
 func WithHasher(h dto.Hasher) Option {
 	return func(r *Router) {
@@ -107,4 +118,22 @@ func NewRouter(metricService *services.MetricService, options ...Option) *Router
 	})
 
 	return router
+}
+
+func (router *Router) Run() error {
+	router.srv = &http.Server{
+		Addr:    router.listenAddress,
+		Handler: router.R,
+	}
+
+	err := router.srv.ListenAndServe()
+	if err != http.ErrServerClosed && err != net.ErrClosed {
+		return fmt.Errorf("error running http server: %w", err)
+	}
+
+	return nil
+}
+
+func (router Router) Shutdown(ctx context.Context) error {
+	return router.srv.Shutdown(ctx)
 }
