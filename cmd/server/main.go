@@ -50,7 +50,8 @@ func main() {
 	}
 	var serverOpts []server.Option
 	if len(config.Config.DSN) > 0 {
-		dbm, err := storage.NewPgManager(config.Config.DSN)
+		var dbm models.DBManager
+		dbm, err = storage.NewPgManager(config.Config.DSN)
 		if err != nil {
 			log.Fatal().Err(err).Msg("could not create DB manager")
 		}
@@ -58,9 +59,10 @@ func main() {
 		serverOpts = append(serverOpts, server.WithDBManager(dbm), server.WithMetricRepository(r))
 		routerOpts = append(routerOpts, router.WithDBManager(dbm))
 	} else {
+		var p models.RepositoryPersistence
 		r = storage.NewSingleValueRepository()
 		serverOpts = append(serverOpts, server.WithMetricRepository(r))
-		p, err := storage.NewJSONFilePersistence(config.Config.StoreFilename)
+		p, err = storage.NewJSONFilePersistence(config.Config.StoreFilename)
 		if err != nil {
 			log.Fatal().Err(err).Msg("could not create persistence")
 		}

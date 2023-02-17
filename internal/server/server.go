@@ -12,7 +12,6 @@ import (
 )
 
 // Server represents server application
-// TODO: it's just a copy of config so far, rework this to use services
 type Server struct {
 	dbm            models.DBManager
 	store          models.RepositoryPersistence
