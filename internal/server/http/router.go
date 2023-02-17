@@ -24,7 +24,7 @@ import (
 // @Description Metric storage
 // @Version 1.0
 
-type Router struct {
+type Controller struct {
 	listenAddress string
 	srv           *http.Server
 	R             chi.Router
@@ -36,42 +36,42 @@ type Router struct {
 	trustedSubNet *net.IPNet
 }
 
-type Option func(r *Router)
+type Option func(r *Controller)
 
 func WithListenAddress(addr string) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.listenAddress = addr
 	}
 }
 
 func WithHasher(h dto.Hasher) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.h = h
 	}
 }
 
 func WithDBManager(dbm models.DBManager) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.dbm = dbm
 	}
 }
 
 func WithDecryptor(d crypto.Decryptor) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.d = d
 	}
 }
 
 func WithTrustedSubNet(subnet *net.IPNet) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.trustedSubNet = subnet
 	}
 }
 
-func NewRouter(metricService *services.MetricService, options ...Option) *Router {
+func NewController(metricService *services.MetricService, options ...Option) *Controller {
 	r := chi.NewRouter()
 
-	router := &Router{
+	router := &Controller{
 		ms:        metricService,
 		R:         r,
 		templates: web.NewEmbeddedTemplates(),
@@ -120,13 +120,13 @@ func NewRouter(metricService *services.MetricService, options ...Option) *Router
 	return router
 }
 
-func (router *Router) Run() error {
-	router.srv = &http.Server{
-		Addr:    router.listenAddress,
-		Handler: router.R,
+func (c *Controller) Run() error {
+	c.srv = &http.Server{
+		Addr:    c.listenAddress,
+		Handler: c.R,
 	}
 
-	err := router.srv.ListenAndServe()
+	err := c.srv.ListenAndServe()
 	if err != http.ErrServerClosed && err != net.ErrClosed {
 		return fmt.Errorf("error running http server: %w", err)
 	}
@@ -134,6 +134,10 @@ func (router *Router) Run() error {
 	return nil
 }
 
-func (router Router) Shutdown(ctx context.Context) error {
-	return router.srv.Shutdown(ctx)
+func (c Controller) Shutdown(ctx context.Context) error {
+	err := c.srv.Shutdown(ctx)
+	if err != nil {
+		return fmt.Errorf("error shutting down http server: %w", err)
+	}
+	return nil
 }

@@ -36,13 +36,17 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	s := server.New(
+	s, err := server.New(
 		server.WithHTTPServer(config.Config.Address, config.Config.TrustedSubnet),
 		server.WithDB(config.Config.DSN),
 		server.WithHashKey(config.Config.Key),
 		server.WithFileStore(config.Config.StoreFilename, config.Config.StoreInterval, config.Config.Restore),
 		server.WithCryptoKey(config.Config.PrivateKeyFile),
 	)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not configure server")
+	}
 
 	shutdownSignal := make(chan os.Signal, 1)
 	signal.Notify(shutdownSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

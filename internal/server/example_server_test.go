@@ -20,9 +20,12 @@ func Example() {
 			log.Fatal().Err(tempf.Close()).Msg("error closing temp file")
 		}
 	}()
-	s := server.New(
+	s, err := server.New(
 		server.WithFileStore(tempf.Name(), 3*time.Second, false),
 	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not configure server")
+	}
 	err = s.Run(context.Background())
 	if err != nil {
 		log.Fatal().Err(err).Msg("error while running server")

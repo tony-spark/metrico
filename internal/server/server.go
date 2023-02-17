@@ -31,14 +31,15 @@ type Server struct {
 	dbm            models.DBManager
 	store          models.RepositoryPersistence
 	r              models.MetricRepository
-	httpController *router.Router
+	httpController *router.Controller
+	pservice       *services.PersistenceService
 }
 
 // Option represents option function for server configuration
 type Option func(s *Server)
 
 // New creates server with given options
-func New(options ...Option) Server {
+func New(options ...Option) (Server, error) {
 	s := Server{
 		listenAddress: "127.0.0.1:8080",
 		storeFilename: "/tmp/devops-metrics-db.json",
@@ -50,7 +51,56 @@ func New(options ...Option) Server {
 		opt(&s)
 	}
 
-	return s
+	var postUpdateFn func() = nil
+	var err error
+	opts := []router.Option{
+		router.WithListenAddress(s.listenAddress),
+	}
+	if len(s.dsn) > 0 {
+		s.dbm, err = storage.NewPgManager(s.dsn)
+		opts = append(opts, router.WithDBManager(s.dbm))
+		if err != nil {
+			return s, err
+		}
+		s.r = s.dbm.MetricRepository()
+	} else {
+		s.r = storage.NewSingleValueRepository()
+		s.store, err = storage.NewJSONFilePersistence(s.storeFilename)
+		if err != nil {
+			return s, err
+		}
+		s.pservice = services.NewPersistenceService(s.store, s.storeInterval, s.restore, s.r)
+		postUpdateFn = s.pservice.PostUpdate()
+	}
+
+	if len(s.key) > 0 {
+		h := hash.NewSha256Hmac(s.key)
+		opts = append(opts, router.WithHasher(h))
+	}
+
+	if len(s.cryptoKeyFile) > 0 {
+		var d crypto.Decryptor
+		d, err = crypto.NewRSADecryptorFromFile(s.cryptoKeyFile, "metrico")
+		if err != nil {
+			return s, fmt.Errorf("could not initialize decryptor: %w", err)
+		}
+		opts = append(opts, router.WithDecryptor(d))
+	}
+
+	if len(s.trustedSubnet) > 0 {
+		var subnet *net.IPNet
+		_, subnet, err = net.ParseCIDR(s.trustedSubnet)
+		if err != nil {
+			return s, fmt.Errorf("could not parse subnet: %w", err)
+		}
+		opts = append(opts, router.WithTrustedSubNet(subnet))
+	}
+
+	metricService := services.NewMetricService(s.r, postUpdateFn)
+
+	s.httpController = router.NewController(metricService, opts...)
+
+	return s, nil
 }
 
 // WithHTTPServer configures server to receive metrics via HTTP
@@ -98,58 +148,12 @@ func WithFileStore(filename string, storeInterval time.Duration, restore bool) O
 //
 // Note that Run blocks until Shutdown called
 func (s *Server) Run(ctx context.Context) error {
-	var postUpdateFn func() = nil
-	var err error
-	opts := []router.Option{
-		router.WithListenAddress(s.listenAddress),
-	}
-	if len(s.dsn) > 0 {
-		s.dbm, err = storage.NewPgManager(s.dsn)
-		opts = append(opts, router.WithDBManager(s.dbm))
+	if s.pservice != nil {
+		err := s.pservice.Run(ctx)
 		if err != nil {
 			return err
 		}
-		s.r = s.dbm.MetricRepository()
-	} else {
-		s.r = storage.NewSingleValueRepository()
-		s.store, err = storage.NewJSONFilePersistence(s.storeFilename)
-		if err != nil {
-			return err
-		}
-		pservice := services.NewPersistenceService(s.store, s.storeInterval, s.restore, s.r)
-		err = pservice.Run(ctx)
-		if err != nil {
-			return err
-		}
-		postUpdateFn = pservice.PostUpdate()
 	}
-
-	if len(s.key) > 0 {
-		h := hash.NewSha256Hmac(s.key)
-		opts = append(opts, router.WithHasher(h))
-	}
-
-	if len(s.cryptoKeyFile) > 0 {
-		var d crypto.Decryptor
-		d, err = crypto.NewRSADecryptorFromFile(s.cryptoKeyFile, "metrico")
-		if err != nil {
-			return fmt.Errorf("could not initialize decryptor: %w", err)
-		}
-		opts = append(opts, router.WithDecryptor(d))
-	}
-
-	if len(s.trustedSubnet) > 0 {
-		var subnet *net.IPNet
-		_, subnet, err = net.ParseCIDR(s.trustedSubnet)
-		if err != nil {
-			return fmt.Errorf("could not parse subnet: %w", err)
-		}
-		opts = append(opts, router.WithTrustedSubNet(subnet))
-	}
-
-	metricService := services.NewMetricService(s.r, postUpdateFn)
-
-	s.httpController = router.NewRouter(metricService, opts...)
 
 	return s.httpController.Run()
 }

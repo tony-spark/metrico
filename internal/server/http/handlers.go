@@ -48,15 +48,15 @@ func readMetric(w http.ResponseWriter, r *http.Request) (*dto.Metric, error) {
 	return &m, nil
 }
 
-func (router Router) readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
+func (c Controller) readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.Metric, error) {
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Could not read body", http.StatusBadRequest)
 		return nil, fmt.Errorf("failed to read metrics from request: %w", err)
 	}
-	if router.d != nil {
-		body, err = router.d.Decrypt(body)
+	if c.d != nil {
+		body, err = c.d.Decrypt(body)
 		if err != nil {
 			http.Error(w, "Could not decrypt body", http.StatusInternalServerError)
 			return nil, fmt.Errorf("failed to decrypt request: %w", err)
@@ -77,9 +77,9 @@ func (router Router) readMetrics(w http.ResponseWriter, r *http.Request) ([]dto.
 	return ms, nil
 }
 
-func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter) bool {
-	if router.h != nil {
-		ok, err := router.h.Check(mdto)
+func (c Controller) checkHash(mdto dto.Metric, w http.ResponseWriter) bool {
+	if c.h != nil {
+		ok, err := c.h.Check(mdto)
 		if err != nil {
 			log.Error().Err(err).Msg(err.Error())
 			http.Error(w, "could not check metric integrity", http.StatusInternalServerError)
@@ -100,7 +100,7 @@ func (router Router) checkHash(mdto dto.Metric, w http.ResponseWriter) bool {
 // @Param metric_data body dto.Metric true "Metric's data"
 // @Success 200 {object} dto.Metric
 // @Router /update [post]
-func (router Router) UpdatePostHandler() http.HandlerFunc {
+func (c Controller) UpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Error().Err(err).Msg("Wrong content type")
@@ -111,7 +111,7 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Could not parse metric")
 			return
 		}
-		if !router.checkHash(*mdto, w) {
+		if !c.checkHash(*mdto, w) {
 			return
 		}
 		if !mdto.HasValue() {
@@ -119,7 +119,7 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 			return
 		}
 		mvalue := models.FromDTO(*mdto)
-		updated, err := router.ms.UpdateMetric(context.Background(), mvalue)
+		updated, err := c.ms.UpdateMetric(context.Background(), mvalue)
 		if err != nil {
 			log.Error().Err(err).Msg("could not save metric")
 			http.Error(w, "could not save metric", http.StatusInternalServerError)
@@ -144,18 +144,18 @@ func (router Router) UpdatePostHandler() http.HandlerFunc {
 // @Produce json
 // @Param metric_data body []dto.Metric true "Metric's data"
 // @Router /updates [post]
-func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
+func (c Controller) BulkUpdatePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Error().Err(err).Msg("Wrong content type")
 			return
 		}
-		ms, err := router.readMetrics(w, r)
+		ms, err := c.readMetrics(w, r)
 		if err != nil {
 			return
 		}
 		for _, m := range ms {
-			if !router.checkHash(m, w) {
+			if !c.checkHash(m, w) {
 				http.Error(w, "hash check failed", http.StatusBadRequest)
 				return
 			}
@@ -180,7 +180,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 				})
 			}
 		}
-		err = router.ms.UpdateAll(context.Background(), gs, cs)
+		err = c.ms.UpdateAll(context.Background(), gs, cs)
 		if err != nil {
 			log.Error().Err(err).Msg("Error saving metrics")
 			http.Error(w, "Could not save metrics", http.StatusInternalServerError)
@@ -199,7 +199,7 @@ func (router Router) BulkUpdatePostHandler() http.HandlerFunc {
 // @Param metric_data body dto.Metric true "Metric's data"
 // @Success 200 {object} dto.Metric
 // @Router /value [post]
-func (router Router) GetPostHandler() http.HandlerFunc {
+func (c Controller) GetPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := checkContentType(w, r); err != nil {
 			log.Error().Err(err).Msg("Wrong content type")
@@ -210,7 +210,7 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			log.Error().Err(err).Msg("Could not parse metric")
 			return
 		}
-		mvalue, err := router.ms.Get(context.Background(), mdto.ID, mdto.MType)
+		mvalue, err := c.ms.Get(context.Background(), mdto.ID, mdto.MType)
 		if err != nil {
 			log.Error().Err(err).Msg("Could not get metric")
 			http.Error(w, "could not retrieve metric", http.StatusInternalServerError)
@@ -221,8 +221,8 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 			return
 		}
 		mdto = dto.NewMetric(mvalue)
-		if router.h != nil {
-			mdto.Hash, err = router.h.Hash(*mdto)
+		if c.h != nil {
+			mdto.Hash, err = c.h.Hash(*mdto)
 			if err != nil {
 				http.Error(w, "could not calculate hash for integrity", http.StatusInternalServerError)
 				return
@@ -248,10 +248,10 @@ func (router Router) GetPostHandler() http.HandlerFunc {
 // @Param metric_name path string true "Metric name"
 // @Success 200 {string} string "Metric value"
 // @Router /value/{metric_type}/{metric_name} [get]
-func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
+func (c Controller) MetricGetHandler(mType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		m, err := router.ms.Get(context.Background(), name, mType)
+		m, err := c.ms.Get(context.Background(), name, mType)
 		if err != nil {
 			log.Error().Err(err).Msg("error getting value")
 			http.Error(w, "error retrieving value", http.StatusInternalServerError)
@@ -273,7 +273,7 @@ func (router Router) MetricGetHandler(mType string) http.HandlerFunc {
 // @Param metric_name path string true "Counter name"
 // @Param metric_value path int true "Counter value"
 // @Router /update/counter/{metric_name}/{metric_value} [post]
-func (router Router) CounterPostHandler() http.HandlerFunc {
+func (c Controller) CounterPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		svalue := chi.URLParam(r, "svalue")
@@ -283,7 +283,7 @@ func (router Router) CounterPostHandler() http.HandlerFunc {
 			http.Error(w, "VALUE type must be int64", http.StatusBadRequest)
 			return
 		}
-		_, err = router.ms.UpdateCounter(context.Background(), models.CounterValue{Name: name, Value: value})
+		_, err = c.ms.UpdateCounter(context.Background(), models.CounterValue{Name: name, Value: value})
 		if err != nil {
 			log.Error().Err(err).Msgf("Could not add and save counter value %s = %v", name, value)
 			http.Error(w, "Could not add and save counter value", http.StatusInternalServerError)
@@ -297,7 +297,7 @@ func (router Router) CounterPostHandler() http.HandlerFunc {
 // @Param metric_name path string true "Gauge name"
 // @Param metric_value path number true "Gauge value"
 // @Router /update/gauge/{metric_name}/{metric_value} [post]
-func (router Router) GaugePostHandler() http.HandlerFunc {
+func (c Controller) GaugePostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		svalue := chi.URLParam(r, "svalue")
@@ -307,7 +307,7 @@ func (router Router) GaugePostHandler() http.HandlerFunc {
 			http.Error(w, "VALUE type must be float64", http.StatusBadRequest)
 			return
 		}
-		_, err = router.ms.UpdateGauge(context.Background(), models.GaugeValue{Name: name, Value: value})
+		_, err = c.ms.UpdateGauge(context.Background(), models.GaugeValue{Name: name, Value: value})
 		if err != nil {
 			log.Error().Err(err).Msgf("Could not save gauge value %s = %v", name, value)
 			http.Error(w, "Could not save gauge value", http.StatusInternalServerError)
@@ -316,7 +316,7 @@ func (router Router) GaugePostHandler() http.HandlerFunc {
 	}
 }
 
-func (router Router) MetricsViewPageHandler() http.HandlerFunc {
+func (c Controller) MetricsViewPageHandler() http.HandlerFunc {
 	type Item struct {
 		Name  string
 		Type  string
@@ -328,7 +328,7 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 			Items []Item
 		}{}
 
-		ms, err := router.ms.GetAll(context.Background())
+		ms, err := c.ms.GetAll(context.Background())
 		if err != nil {
 			log.Error().Err(err).Msg("error getting metrics")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -344,7 +344,7 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
-		err = router.templates.MetricsViewTemplate().Execute(w, data)
+		err = c.templates.MetricsViewTemplate().Execute(w, data)
 		if err != nil {
 			log.Error().Err(err).Msg("Error rendering webpage")
 			http.Error(w, "Could not display metrics", http.StatusInternalServerError)
@@ -359,13 +359,13 @@ func (router Router) MetricsViewPageHandler() http.HandlerFunc {
 // @Failure 503 {string} string "DB connection is not configured"
 // @Failure 500 {string} string "could not check DB or DB is not OK"
 // @Router /ping [get]
-func (router Router) PingHandler() http.HandlerFunc {
+func (c Controller) PingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if router.dbm == nil {
+		if c.dbm == nil {
 			http.Error(w, "DB connection is not configured", http.StatusServiceUnavailable)
 			return
 		}
-		ok, err := router.dbm.Check(context.Background())
+		ok, err := c.dbm.Check(context.Background())
 		if err != nil || !ok {
 			http.Error(w, "could not check DB or DB is not OK", http.StatusInternalServerError)
 			return
