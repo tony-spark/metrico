@@ -46,12 +46,6 @@ func WithDBManager(dbm models.DBManager) Option {
 	}
 }
 
-func WithDecryptor(d crypto.Decryptor) Option {
-	return func(c *Controller) {
-		c.d = d
-	}
-}
-
 func WithTrustedSubNet(subnet *net.IPNet) Option {
 	return func(c *Controller) {
 		c.trustedSubNet = subnet

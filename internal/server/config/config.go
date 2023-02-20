@@ -24,6 +24,7 @@ var (
 
 type config struct {
 	Address        string        `env:"ADDRESS" json:"address,omitempty"`
+	GrpcAddress    string        `env:"GRPC_ADDRESS" json:"grpc_address,omitempty"`
 	StoreInterval  time.Duration `env:"STORE_INTERVAL" json:"store_interval,omitempty"`
 	StoreFilename  string        `env:"STORE_FILE" json:"store_filename,omitempty"`
 	Restore        bool          `env:"RESTORE" json:"restore,omitempty"`
@@ -54,6 +55,7 @@ func Parse() error {
 	}
 
 	flag.StringVar(&Config.Address, "a", Config.Address, "address to listen")
+	flag.StringVar(&Config.GrpcAddress, "g", Config.GrpcAddress, "grpc address to listen")
 	flag.DurationVar(&Config.StoreInterval, "i", Config.StoreInterval, "store interval")
 	flag.StringVar(&Config.StoreFilename, "f", Config.StoreFilename, "file to persist metrics")
 	flag.BoolVar(&Config.Restore, "r", Config.Restore, "whether to load metric from file on start")

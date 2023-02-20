@@ -83,6 +83,7 @@ func (s *Server) Run(ctx context.Context) error {
 	grp := new(errgroup.Group)
 	for _, ctrl := range s.ctrls {
 		ctrl := ctrl
+		log.Info().Msgf("starting %v", ctrl)
 		grp.Go(ctrl.Run)
 	}
 

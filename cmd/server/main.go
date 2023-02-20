@@ -14,7 +14,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/crypto"
 	"github.com/tony-spark/metrico/internal/hash"
-	router "github.com/tony-spark/metrico/internal/server/http"
+	grpcController "github.com/tony-spark/metrico/internal/server/grpc"
+	httpController "github.com/tony-spark/metrico/internal/server/http"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/services"
 	"github.com/tony-spark/metrico/internal/server/storage"
@@ -45,8 +46,11 @@ func main() {
 
 	var postUpdateFn func() = nil
 	var r models.MetricRepository
-	routerOpts := []router.Option{
-		router.WithListenAddress(config.Config.Address),
+	httpCtrlOpts := []httpController.Option{
+		httpController.WithListenAddress(config.Config.Address),
+	}
+	grpcCtrlOpts := []grpcController.Option{
+		grpcController.WithListenAddress(config.Config.GrpcAddress),
 	}
 	var serverOpts []server.Option
 	if len(config.Config.DSN) > 0 {
@@ -57,7 +61,8 @@ func main() {
 		}
 		r = dbm.MetricRepository()
 		serverOpts = append(serverOpts, server.WithDBManager(dbm), server.WithMetricRepository(r))
-		routerOpts = append(routerOpts, router.WithDBManager(dbm))
+		httpCtrlOpts = append(httpCtrlOpts, httpController.WithDBManager(dbm))
+		grpcCtrlOpts = append(grpcCtrlOpts, grpcController.WithDBManager(dbm))
 	} else {
 		var p models.RepositoryPersistence
 		r = storage.NewSingleValueRepository()
@@ -73,7 +78,8 @@ func main() {
 
 	if len(config.Config.Key) > 0 {
 		h := hash.NewSha256Hmac(config.Config.Key)
-		routerOpts = append(routerOpts, router.WithHasher(h))
+		httpCtrlOpts = append(httpCtrlOpts, httpController.WithHasher(h))
+		grpcCtrlOpts = append(grpcCtrlOpts, grpcController.WithHasher(h))
 	}
 
 	if len(config.Config.PrivateKeyFile) > 0 {
@@ -82,7 +88,7 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("could not initialize decryptor")
 		}
-		routerOpts = append(routerOpts, router.WithDecryptor(d))
+		httpCtrlOpts = append(httpCtrlOpts, httpController.WithDecryptor(d))
 	}
 
 	if len(config.Config.TrustedSubnet) > 0 {
@@ -91,12 +97,17 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("could not parse subnet")
 		}
-		routerOpts = append(routerOpts, router.WithTrustedSubNet(subnet))
+		httpCtrlOpts = append(httpCtrlOpts, httpController.WithTrustedSubNet(subnet))
+		grpcCtrlOpts = append(grpcCtrlOpts, grpcController.WithTrustedSubNet(subnet))
 	}
 
 	metricService := services.NewMetricService(r, postUpdateFn)
 
-	serverOpts = append(serverOpts, server.AddController(router.NewController(metricService, routerOpts...)))
+	serverOpts = append(serverOpts, server.AddController(httpController.NewController(metricService, httpCtrlOpts...)))
+
+	if len(config.Config.GrpcAddress) > 0 {
+		serverOpts = append(serverOpts, server.AddController(grpcController.NewController(metricService, grpcCtrlOpts...)))
+	}
 
 	s, err := server.New(metricService, serverOpts...)
 
