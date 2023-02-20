@@ -25,7 +25,7 @@ enum Status {
 
 message Response {
   Status status = 1;
-  optional string Error = 2;
+  optional string error = 2;
 }
 
 service MetricService {
