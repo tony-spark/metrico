@@ -27,7 +27,7 @@ import (
 type Controller struct {
 	listenAddress string
 	srv           *http.Server
-	R             chi.Router
+	r             chi.Router
 	ms            *services.MetricService
 	templates     web.TemplateProvider
 	dbm           models.DBManager
@@ -73,7 +73,7 @@ func NewController(metricService *services.MetricService, options ...Option) *Co
 
 	router := &Controller{
 		ms:        metricService,
-		R:         r,
+		r:         r,
 		templates: web.NewEmbeddedTemplates(),
 	}
 
@@ -123,7 +123,7 @@ func NewController(metricService *services.MetricService, options ...Option) *Co
 func (c *Controller) Run() error {
 	c.srv = &http.Server{
 		Addr:    c.listenAddress,
-		Handler: c.R,
+		Handler: c.r,
 	}
 
 	err := c.srv.ListenAndServe()
@@ -140,4 +140,8 @@ func (c Controller) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("error shutting down http server: %w", err)
 	}
 	return nil
+}
+
+func (c Controller) String() string {
+	return fmt.Sprintf("HTTP controller at " + c.listenAddress)
 }

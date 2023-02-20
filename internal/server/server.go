@@ -3,22 +3,30 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
-	router "github.com/tony-spark/metrico/internal/server/http"
 	"github.com/tony-spark/metrico/internal/server/models"
 	"github.com/tony-spark/metrico/internal/server/services"
+	"golang.org/x/sync/errgroup"
 )
+
+type Controller interface {
+	fmt.Stringer
+
+	Run() error
+	Shutdown(ctx context.Context) error
+}
 
 // Server represents server application
 type Server struct {
-	dbm            models.DBManager
-	store          models.RepositoryPersistence
-	r              models.MetricRepository
-	pService       *services.PersistenceService
-	mService       *services.MetricService
-	httpController *router.Controller
+	dbm      models.DBManager
+	store    models.RepositoryPersistence
+	r        models.MetricRepository
+	pService *services.PersistenceService
+	mService *services.MetricService
+	ctrls    []Controller
 }
 
 // Option represents option function for server configuration
@@ -42,9 +50,9 @@ func WithPersistence(pservice *services.PersistenceService) Option {
 	}
 }
 
-func WithHTTPController(c *router.Controller) Option {
+func AddController(c Controller) Option {
 	return func(s *Server) {
-		s.httpController = c
+		s.ctrls = append(s.ctrls, c)
 	}
 }
 
@@ -72,13 +80,23 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 
-	return s.httpController.Run()
+	grp := new(errgroup.Group)
+	for _, ctrl := range s.ctrls {
+		ctrl := ctrl
+		grp.Go(ctrl.Run)
+	}
+
+	return grp.Wait()
 }
 
 func (s Server) Shutdown(ctx context.Context) error {
-	result := s.httpController.Shutdown(ctx)
-	if result == nil {
-		log.Info().Msg("HTTP controller shut down")
+	var result error
+	for _, ctrl := range s.ctrls {
+		log.Info().Msgf("shutting down %v", ctrl)
+		err := ctrl.Shutdown(ctx)
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
 	}
 	if s.store != nil {
 		err := s.store.Save(ctx, s.r)

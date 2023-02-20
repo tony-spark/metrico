@@ -21,7 +21,7 @@ import (
 func TestRouter(t *testing.T) {
 	mr := storage.NewSingleValueRepository()
 	r := NewController(services.NewMetricService(mr, nil))
-	ts := httptest.NewServer(r.R)
+	ts := httptest.NewServer(r.r)
 	defer ts.Close()
 
 	t.Run("metrics page", func(t *testing.T) {

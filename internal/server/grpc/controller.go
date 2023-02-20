@@ -126,3 +126,7 @@ func (c *Controller) Shutdown(ctx context.Context) error {
 
 	return nil
 }
+
+func (c Controller) String() string {
+	return fmt.Sprintf("GRPC controller at " + c.listenAddress)
+}

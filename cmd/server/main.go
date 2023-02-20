@@ -96,7 +96,7 @@ func main() {
 
 	metricService := services.NewMetricService(r, postUpdateFn)
 
-	serverOpts = append(serverOpts, server.WithHTTPController(router.NewController(metricService, routerOpts...)))
+	serverOpts = append(serverOpts, server.AddController(router.NewController(metricService, routerOpts...)))
 
 	s, err := server.New(metricService, serverOpts...)
 
