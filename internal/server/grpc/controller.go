@@ -2,7 +2,9 @@ package grpc
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/rs/zerolog/log"
@@ -86,10 +88,39 @@ func (c *Controller) DBStatus(ctx context.Context, _ *pb.Empty) (*pb.Response, e
 	return &response, nil
 }
 
+func (c *Controller) Update(stream pb.MetricService_UpdateServer) error {
+	for {
+		m, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&pb.Response{Status: pb.Status_OK})
+		}
+		if err != nil {
+			return err
+		}
+		mdto := toDTO(m)
+		if !mdto.HasValue() {
+			log.Error().Msgf("no value: %+v", mdto)
+			continue
+		}
+		if c.h != nil {
+			var ok bool
+			ok, err = c.h.Check(mdto)
+			if err != nil || !ok {
+				log.Error().Err(err).Msg("wrong hash")
+			}
+		}
+		metric := models.FromDTO(mdto)
+		_, err = c.ms.UpdateMetric(context.Background(), metric)
+		if err != nil {
+			log.Error().Err(err).Msg("could not update metric")
+		}
+	}
+}
+
 func (c *Controller) Run() error {
 	listen, err := net.Listen("tcp", c.listenAddress)
 	if err != nil {
-		return fmt.Errorf("could not open listen socker: %w", err)
+		return fmt.Errorf("could not open listen socket: %w", err)
 	}
 
 	pb.RegisterMetricServiceServer(c.srv, c)
@@ -123,4 +154,14 @@ func (c *Controller) Shutdown(ctx context.Context) error {
 
 func (c Controller) String() string {
 	return fmt.Sprintf("GRPC controller at " + c.listenAddress)
+}
+
+func toDTO(m *pb.Metric) dto.Metric {
+	return dto.Metric{
+		ID:    m.Id,
+		MType: m.GetType().String(),
+		Delta: m.Delta,
+		Value: m.Value,
+		Hash:  hex.EncodeToString(m.Hash),
+	}
 }
