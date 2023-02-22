@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	pb "github.com/tony-spark/metrico/gen/pb/api"
@@ -97,6 +98,7 @@ func (c *Controller) Update(stream pb.MetricService_UpdateServer) error {
 		if err != nil {
 			return err
 		}
+		log.Info().Msgf("got %v", m)
 		mdto := toDTO(m)
 		if !mdto.HasValue() {
 			log.Error().Msgf("no value: %+v", mdto)
@@ -114,6 +116,7 @@ func (c *Controller) Update(stream pb.MetricService_UpdateServer) error {
 		if err != nil {
 			log.Error().Err(err).Msg("could not update metric")
 		}
+
 	}
 }
 
@@ -159,7 +162,7 @@ func (c Controller) String() string {
 func toDTO(m *pb.Metric) dto.Metric {
 	return dto.Metric{
 		ID:    m.Id,
-		MType: m.GetType().String(),
+		MType: strings.ToLower(m.GetType().String()),
 		Delta: m.Delta,
 		Value: m.Value,
 		Hash:  hex.EncodeToString(m.Hash),

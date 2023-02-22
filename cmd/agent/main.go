@@ -15,6 +15,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/agent/transports"
+	grpcTransport "github.com/tony-spark/metrico/internal/agent/transports/grpc"
+	httpTransport "github.com/tony-spark/metrico/internal/agent/transports/http"
 	"github.com/tony-spark/metrico/internal/crypto"
 	"github.com/tony-spark/metrico/internal/hash"
 
@@ -40,20 +42,39 @@ func main() {
 		log.Fatal().Err(err).Msg("Could not parse config")
 	}
 
-	baseURL := "http://" + strings.Trim(config.Config.Address, "\"")
+	var t transports.Transport
 
-	var transportOptions []transports.HTTPOption
-	if len(config.Config.Key) > 0 {
-		transportOptions = append(transportOptions, transports.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
+	if len(config.Config.Address) == 0 && len(config.Config.GrpcAddress) == 0 {
+		log.Fatal().Msg("you should define address (grpc or http)")
 	}
-	if len(config.Config.PublicKeyFile) > 0 {
-		encryptor, err := crypto.NewRSAEncryptorFromFile(config.Config.PublicKeyFile, "metrico")
-		if err != nil {
-			log.Fatal().Err(err).Msg("could not parse public key")
+
+	if len(config.Config.Address) > 0 {
+		baseURL := "http://" + strings.Trim(config.Config.Address, "\"")
+
+		var options []httpTransport.Option
+		if len(config.Config.Key) > 0 {
+			options = append(options, httpTransport.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
 		}
-		transportOptions = append(transportOptions, transports.WithEncryptor(encryptor))
+		if len(config.Config.PublicKeyFile) > 0 {
+			encryptor, err := crypto.NewRSAEncryptorFromFile(config.Config.PublicKeyFile, "metrico")
+			if err != nil {
+				log.Fatal().Err(err).Msg("could not parse public key")
+			}
+			options = append(options, httpTransport.WithEncryptor(encryptor))
+		}
+		t = httpTransport.NewTransport(baseURL, options...)
 	}
-	t := transports.NewHTTP(baseURL, transportOptions...)
+
+	if len(config.Config.GrpcAddress) > 0 {
+		var options []grpcTransport.Option
+		if len(config.Config.Key) > 0 {
+			options = append(options, grpcTransport.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
+		}
+		t, err = grpcTransport.NewTransport(config.Config.GrpcAddress, options...)
+		if err != nil {
+			log.Fatal().Err(err).Msg("could not initialize grpc transport")
+		}
+	}
 
 	agent := a.New(
 		a.WithTransport(t),

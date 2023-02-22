@@ -1,4 +1,4 @@
-package transports
+package http
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/agent/transports"
 	"github.com/tony-spark/metrico/internal/crypto"
 
 	"github.com/tony-spark/metrico/internal/dto"
@@ -24,17 +25,17 @@ const (
 	endpointSendJSONBatch = "/updates/"
 )
 
-type HTTPTransport struct {
+type Transport struct {
 	client    *resty.Client
 	hasher    dto.Hasher
 	encryptor crypto.Encryptor
 	clientIP  string
 }
 
-type HTTPOption func(t *HTTPTransport)
+type Option func(t *Transport)
 
-func NewHTTP(baseURL string, options ...HTTPOption) Transport {
-	var t HTTPTransport
+func NewTransport(baseURL string, options ...Option) transports.Transport {
+	var t Transport
 
 	client := resty.New()
 	client.SetBaseURL(baseURL)
@@ -51,31 +52,31 @@ func NewHTTP(baseURL string, options ...HTTPOption) Transport {
 	return t
 }
 
-func WithHasher(h dto.Hasher) HTTPOption {
-	return func(t *HTTPTransport) {
+func WithHasher(h dto.Hasher) Option {
+	return func(t *Transport) {
 		t.hasher = h
 	}
 }
 
-func WithEncryptor(e crypto.Encryptor) HTTPOption {
-	return func(t *HTTPTransport) {
+func WithEncryptor(e crypto.Encryptor) Option {
+	return func(t *Transport) {
 		t.encryptor = e
 	}
 }
 
-func (h HTTPTransport) SendMetric(metric model.Metric) error {
+func (h Transport) SendMetric(metric model.Metric) error {
 	return h.sendJSON(metric)
 }
 
-func (h HTTPTransport) SendMetrics(mx []model.Metric) error {
+func (h Transport) SendMetrics(mx []model.Metric) error {
 	return h.sendJSONBatch(context.Background(), mx)
 }
 
-func (h HTTPTransport) SendMetricsWithContext(ctx context.Context, mx []model.Metric) error {
+func (h Transport) SendMetricsWithContext(ctx context.Context, mx []model.Metric) error {
 	return h.sendJSONBatch(ctx, mx)
 }
 
-func (h HTTPTransport) send(metric model.Metric) error {
+func (h Transport) send(metric model.Metric) error {
 	req := h.client.R().
 		SetPathParam("type", metric.Type()).
 		SetPathParam("name", metric.ID()).
@@ -94,7 +95,7 @@ func (h HTTPTransport) send(metric model.Metric) error {
 	return nil
 }
 
-func (h HTTPTransport) createDTO(metric model.Metric) (*dto.Metric, error) {
+func (h Transport) createDTO(metric model.Metric) (*dto.Metric, error) {
 	d := dto.NewMetric(metric)
 	if h.hasher != nil {
 		var err error
@@ -106,7 +107,7 @@ func (h HTTPTransport) createDTO(metric model.Metric) (*dto.Metric, error) {
 	return d, nil
 }
 
-func (h HTTPTransport) sendJSON(metric model.Metric) error {
+func (h Transport) sendJSON(metric model.Metric) error {
 	d, err := h.createDTO(metric)
 	if err != nil {
 		return err
@@ -125,7 +126,7 @@ func (h HTTPTransport) sendJSON(metric model.Metric) error {
 	return nil
 }
 
-func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) error {
+func (h Transport) sendJSONBatch(ctx context.Context, mx []model.Metric) error {
 	var dtos []dto.Metric
 	for _, m := range mx {
 		mdto, err := h.createDTO(m)
@@ -155,7 +156,7 @@ func (h HTTPTransport) sendJSONBatch(ctx context.Context, mx []model.Metric) err
 	return nil
 }
 
-func (h HTTPTransport) encodeInRequest(obj interface{}, r *resty.Request) error {
+func (h Transport) encodeInRequest(obj interface{}, r *resty.Request) error {
 	bs, err := json.Marshal(obj)
 	if err != nil {
 		return fmt.Errorf("could not marshal json: %w", err)

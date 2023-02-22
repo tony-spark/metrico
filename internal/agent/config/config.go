@@ -23,6 +23,7 @@ var (
 
 type config struct {
 	Address        string        `env:"ADDRESS" json:"address,omitempty"`
+	GrpcAddress    string        `env:"GRPC_ADRESS" json:"grpc_address,omitempty"`
 	ReportInterval time.Duration `env:"REPORT_INTERVAL" json:"report_interval,omitempty"`
 	PollInterval   time.Duration `env:"POLL_INTERVAL" json:"poll_interval,omitempty"`
 	Key            string        `env:"KEY" json:"key,omitempty"`
@@ -51,6 +52,7 @@ func Parse() error {
 	}
 
 	flag.StringVar(&Config.Address, "a", Config.Address, "address to send metrics to")
+	flag.StringVar(&Config.GrpcAddress, "g", Config.GrpcAddress, "user grpc with specified address instead")
 	flag.DurationVar(&Config.ReportInterval, "r", Config.ReportInterval, "report interval")
 	flag.DurationVar(&Config.PollInterval, "p", Config.PollInterval, "poll interval")
 	flag.StringVar(&Config.Key, "k", Config.Key, "hash key")

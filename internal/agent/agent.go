@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/tony-spark/metrico/internal/agent/transports/http"
 
 	"github.com/tony-spark/metrico/internal/agent/metrics"
 	"github.com/tony-spark/metrico/internal/agent/transports"
@@ -38,7 +39,7 @@ func New(options ...Option) MetricsAgent {
 			metrics.NewRandomMetricCollector(),
 			metrics.NewPsUtilMetricsCollector(),
 		},
-		transport: transports.NewHTTP("http://127.0.0.1:8080"),
+		transport: http.NewTransport("http://127.0.0.1:8080"),
 	}
 	a.mu = new(sync.Mutex)
 	a.cond = sync.NewCond(a.mu)
