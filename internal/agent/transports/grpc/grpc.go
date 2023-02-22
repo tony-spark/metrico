@@ -89,11 +89,11 @@ func (t Transport) createDTO(metric model.Metric) (*pb.Metric, error) {
 		var err error
 		d.Hash, err = t.hasher.Hash(*d)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not hash: %w", err)
 		}
 		hash, err = hex.DecodeString(d.Hash)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not decode hash: %w", err)
 		}
 	}
 	var mt pb.MetricType

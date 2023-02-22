@@ -56,7 +56,8 @@ func main() {
 			options = append(options, httpTransport.WithHasher(hash.NewSha256Hmac(config.Config.Key)))
 		}
 		if len(config.Config.PublicKeyFile) > 0 {
-			encryptor, err := crypto.NewRSAEncryptorFromFile(config.Config.PublicKeyFile, "metrico")
+			var encryptor crypto.Encryptor
+			encryptor, err = crypto.NewRSAEncryptorFromFile(config.Config.PublicKeyFile, "metrico")
 			if err != nil {
 				log.Fatal().Err(err).Msg("could not parse public key")
 			}
