@@ -16,14 +16,12 @@ import (
 	"github.com/tony-spark/metrico/internal/dto"
 	"github.com/tony-spark/metrico/internal/model"
 	"github.com/tony-spark/metrico/internal/server/storage"
-	"github.com/tony-spark/metrico/internal/server/web"
 )
 
 func TestRouter(t *testing.T) {
 	mr := storage.NewSingleValueRepository()
-	templates := web.NewEmbeddedTemplates()
-	r := NewRouter(services.NewMetricService(mr, nil), templates)
-	ts := httptest.NewServer(r.R)
+	r := NewController(services.NewMetricService(mr, nil))
+	ts := httptest.NewServer(r.r)
 	defer ts.Close()
 
 	t.Run("metrics page", func(t *testing.T) {
@@ -143,6 +141,25 @@ func TestRouter(t *testing.T) {
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, *mreq.Delta, *mvresp.Delta)
 	})
+	t.Run("test bulk update", func(t *testing.T) {
+		gv := 5.5
+		dv := int64(4)
+		msReq := []dto.Metric{
+			{
+				ID:    "BulkTestGauge",
+				MType: model.GAUGE,
+				Value: &gv,
+			},
+			{
+				ID:    "BultTestCounter",
+				MType: model.COUNTER,
+				Delta: &dv,
+			},
+		}
+
+		statusCode, _ := testJSONRequest(t, ts, "POST", "/updates", msReq)
+		assert.Equal(t, http.StatusOK, statusCode)
+	})
 }
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string) {
@@ -159,7 +176,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, s
 	return resp.StatusCode, string(respBody)
 }
 
-func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, obj interface{}) (int, *dto.Metric) {
+func testJSONRequest(t *testing.T, ts *httptest.Server, method, path string, obj interface{}) (int, []byte) {
 	var r io.Reader
 	if obj != nil {
 		r = bytes.NewReader(marshal(t, obj))
@@ -177,11 +194,17 @@ func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, o
 	defer resp.Body.Close()
 	require.NoError(t, err)
 
+	return resp.StatusCode, respBody
+}
+
+func testMetricRequest(t *testing.T, ts *httptest.Server, method, path string, obj interface{}) (int, *dto.Metric) {
+	statusCode, respBody := testJSONRequest(t, ts, method, path, obj)
+
 	var result dto.Metric
-	err = json.Unmarshal(respBody, &result)
+	err := json.Unmarshal(respBody, &result)
 	require.NoError(t, err)
 
-	return resp.StatusCode, &result
+	return statusCode, &result
 }
 
 func marshal(t *testing.T, obj interface{}) []byte {

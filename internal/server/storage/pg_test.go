@@ -31,6 +31,13 @@ func (suite *PgTestSuite) SetupSuite() {
 
 func (suite *PgTestSuite) TestPgStorage() {
 	r := suite.pgm.mdb
+	suite.Run("ping", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		ok, err := suite.pgm.Check(ctx)
+		assert.NoError(suite.T(), err)
+		assert.True(suite.T(), ok)
+	})
 	suite.Run("gauge not found", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -124,6 +131,27 @@ func (suite *PgTestSuite) TestPgStorage() {
 		gs, err := r.getAllCounters(ctx)
 		assert.NoError(suite.T(), err)
 		assert.True(suite.T(), len(gs) >= 3)
+	})
+	suite.Run("get all metrics", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		for i := 6; i < 9; i++ {
+			name := "test" + fmt.Sprint(i)
+			suite.gs = append(suite.gs, name)
+			value := 2.71
+			_, err := r.SaveGauge(ctx, name, value)
+			assert.NoError(suite.T(), err)
+		}
+		for i := 6; i < 9; i++ {
+			name := "test" + fmt.Sprint(i)
+			suite.cs = append(suite.cs, name)
+			value := int64(33)
+			_, err := r.SaveCounter(ctx, name, value)
+			assert.NoError(suite.T(), err)
+		}
+		ms, err := r.GetAll(ctx)
+		assert.NoError(suite.T(), err)
+		assert.True(suite.T(), len(ms) >= 6)
 	})
 }
 

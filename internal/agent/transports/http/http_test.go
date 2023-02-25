@@ -1,4 +1,4 @@
-package transports
+package http
 
 import (
 	"encoding/json"
@@ -38,7 +38,7 @@ func TestHTTPTransportGauge(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTP(server.URL)
+	transport := NewTransport(server.URL)
 	err := transport.SendMetric(metrics.NewGaugeMetric(name, value))
 	t.Run("send gauge no error", func(t *testing.T) {
 		assert.Nil(t, err)
@@ -68,7 +68,7 @@ func TestHTTPTransportCounter(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTP(server.URL)
+	transport := NewTransport(server.URL)
 	err := transport.SendMetric(metrics.NewCounterMetric(name, value))
 	t.Run("send counter no error", func(t *testing.T) {
 		assert.Nil(t, err)
@@ -81,7 +81,7 @@ func TestHTTPTransportBadStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTP(server.URL)
+	transport := NewTransport(server.URL)
 	err := transport.SendMetric(metrics.NewCounterMetric("Test", 0))
 	t.Run("counter error", func(t *testing.T) {
 		assert.NotNil(t, err)
@@ -90,7 +90,7 @@ func TestHTTPTransportBadStatus(t *testing.T) {
 
 // TODO: rework this check to be safer? (e.g. use mock transport)
 func TestHTTPTransportConnectionProblem(t *testing.T) {
-	transport := NewHTTP("http://doesnotexist:1010")
+	transport := NewTransport("http://doesnotexist:1010")
 	err := transport.SendMetric(metrics.NewCounterMetric("Test", 0))
 	t.Run("connection error", func(t *testing.T) {
 		assert.NotNil(t, err)
@@ -118,9 +118,36 @@ func TestHTTPTransportHashed(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := NewHTTP(server.URL, WithHasher(h))
+	transport := NewTransport(server.URL, WithHasher(h))
 	err := transport.SendMetric(metrics.NewCounterMetric(name, value))
 	t.Run("send counter with hash no error", func(t *testing.T) {
+		assert.Nil(t, err)
+	})
+}
+
+func TestHTTPTransport_SendMetrics(t *testing.T) {
+	mx := []model.Metric{
+		metrics.NewGaugeMetric("Batch_Gauge1", 5.0),
+		metrics.NewCounterMetric("Batch_Counter1", 5),
+	}
+	expected := make([]dto.Metric, 0, len(mx))
+	for _, m := range mx {
+		expected = append(expected, *dto.NewMetric(m))
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/updates/", r.URL.Path)
+		bs, err := io.ReadAll(r.Body)
+		assert.Nil(t, err)
+		var ms []dto.Metric
+		err = json.Unmarshal(bs, &ms)
+		assert.Nil(t, err)
+		assert.Equal(t, expected, ms)
+	}))
+	defer server.Close()
+
+	transport := NewTransport(server.URL)
+	err := transport.SendMetrics(mx)
+	t.Run("send metrics with no error", func(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }

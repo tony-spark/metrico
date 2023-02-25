@@ -12,7 +12,6 @@ type Metric struct {
 	Delta *int64   `json:"delta,omitempty"`             // value of counter metric
 	Value *float64 `json:"value,omitempty"`             // value of gauge metric
 	Hash  string   `json:"hash,omitempty" format:"HEX"` // object hash
-	Empty string   `jon:"hash"`
 }
 
 // Hasher implementation is used to calculate and check DTO's hash

@@ -24,12 +24,14 @@ var (
 
 type config struct {
 	Address        string        `env:"ADDRESS" json:"address,omitempty"`
+	GrpcAddress    string        `env:"GRPC_ADDRESS" json:"grpc_address,omitempty"`
 	StoreInterval  time.Duration `env:"STORE_INTERVAL" json:"store_interval,omitempty"`
 	StoreFilename  string        `env:"STORE_FILE" json:"store_filename,omitempty"`
 	Restore        bool          `env:"RESTORE" json:"restore,omitempty"`
 	Key            string        `env:"KEY" json:"key,omitempty"`
 	DSN            string        `env:"DATABASE_DSN" json:"database_dsn,omitempty"`
 	PrivateKeyFile string        `env:"CRYPTO_KEY" json:"crypto_key,omitempty"`
+	TrustedSubnet  string        `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
 }
 
 func Parse() error {
@@ -53,12 +55,14 @@ func Parse() error {
 	}
 
 	flag.StringVar(&Config.Address, "a", Config.Address, "address to listen")
+	flag.StringVar(&Config.GrpcAddress, "g", Config.GrpcAddress, "grpc address to listen")
 	flag.DurationVar(&Config.StoreInterval, "i", Config.StoreInterval, "store interval")
 	flag.StringVar(&Config.StoreFilename, "f", Config.StoreFilename, "file to persist metrics")
 	flag.BoolVar(&Config.Restore, "r", Config.Restore, "whether to load metric from file on start")
 	flag.StringVar(&Config.Key, "k", Config.Key, "hash key")
 	flag.StringVar(&Config.DSN, "d", Config.DSN, "database connection string")
 	flag.StringVar(&Config.PrivateKeyFile, "crypto-key", Config.PrivateKeyFile, "private key for message decryption (PEM)")
+	flag.StringVar(&Config.TrustedSubnet, "t", Config.TrustedSubnet, "trusted subnet for clients")
 	flag.StringVar(&configFile, "config", "", "config file")
 	flag.StringVar(&configFile, "c", "", "shortcut to --config")
 	flag.Parse()

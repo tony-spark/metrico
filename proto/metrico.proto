@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package com.github.tony_spark.metrico;
+option go_package = "gen/pb/api";
+
+enum MetricType {
+  GAUGE = 0;
+  COUNTER = 1;
+}
+
+message Metric {
+  string id = 1;
+  MetricType type = 2;
+  optional int64 delta  = 3;
+  optional double value = 4;
+  optional bytes hash = 5;
+}
+
+message Empty {}
+
+enum Status {
+  OK = 0;
+  ERROR = 1;
+}
+
+message Response {
+  Status status = 1;
+  optional string error = 2;
+}
+
+service MetricService {
+  rpc Update(stream Metric) returns (Response) {}
+  rpc DBStatus(Empty) returns (Response) {}
+}

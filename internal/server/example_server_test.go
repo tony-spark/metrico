@@ -7,6 +7,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/tony-spark/metrico/internal/server"
+	"github.com/tony-spark/metrico/internal/server/services"
+	"github.com/tony-spark/metrico/internal/server/storage"
 )
 
 // This example runs server with in-memory storage and file persistence (flush every 3 seconds)
@@ -20,9 +22,20 @@ func Example() {
 			log.Fatal().Err(tempf.Close()).Msg("error closing temp file")
 		}
 	}()
-	s := server.New(
-		server.WithFileStore(tempf.Name(), 3*time.Second, false),
+	r := storage.NewSingleValueRepository()
+	p, err := storage.NewJSONFilePersistence(tempf.Name())
+	pservice := services.NewPersistenceService(p, 3*time.Second, false, r)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not create persistence")
+	}
+	s, err := server.New(
+		services.NewMetricService(r, pservice.PostUpdate()),
+		server.WithMetricRepository(r),
+		server.WithPersistence(pservice),
 	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not configure server")
+	}
 	err = s.Run(context.Background())
 	if err != nil {
 		log.Fatal().Err(err).Msg("error while running server")

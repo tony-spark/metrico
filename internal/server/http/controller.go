@@ -2,6 +2,11 @@
 package http
 
 import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog"
@@ -19,50 +24,68 @@ import (
 // @Description Metric storage
 // @Version 1.0
 
-type Router struct {
-	R         chi.Router
-	ms        *services.MetricService
-	templates web.TemplateProvider
-	dbm       models.DBManager
-	h         dto.Hasher
-	d         crypto.Decryptor
+type Controller struct {
+	listenAddress string
+	srv           *http.Server
+	r             chi.Router
+	ms            *services.MetricService
+	templates     web.TemplateProvider
+	dbm           models.DBManager
+	h             dto.Hasher
+	d             crypto.Decryptor
+	trustedSubNet *net.IPNet
 }
 
-type Option func(r *Router)
+type Option func(r *Controller)
+
+func WithListenAddress(addr string) Option {
+	return func(r *Controller) {
+		r.listenAddress = addr
+	}
+}
 
 func WithHasher(h dto.Hasher) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.h = h
 	}
 }
 
 func WithDBManager(dbm models.DBManager) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.dbm = dbm
 	}
 }
 
 func WithDecryptor(d crypto.Decryptor) Option {
-	return func(r *Router) {
+	return func(r *Controller) {
 		r.d = d
 	}
 }
 
-func NewRouter(metricService *services.MetricService, templates web.TemplateProvider, options ...Option) *Router {
+func WithTrustedSubNet(subnet *net.IPNet) Option {
+	return func(r *Controller) {
+		r.trustedSubNet = subnet
+	}
+}
+
+func NewController(metricService *services.MetricService, options ...Option) *Controller {
 	r := chi.NewRouter()
 
-	router := &Router{
+	router := &Controller{
 		ms:        metricService,
-		R:         r,
-		templates: templates,
+		r:         r,
+		templates: web.NewEmbeddedTemplates(),
 	}
 
 	for _, opt := range options {
 		opt(router)
 	}
 
-	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+	if router.trustedSubNet != nil {
+		r.Use(SubnetClientFilter(*router.trustedSubNet))
+	}
+	r.Use(middleware.RequestID)
 	r.Use(httplog.RequestLogger(log.Logger))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5))
@@ -95,4 +118,30 @@ func NewRouter(metricService *services.MetricService, templates web.TemplateProv
 	})
 
 	return router
+}
+
+func (c *Controller) Run() error {
+	c.srv = &http.Server{
+		Addr:    c.listenAddress,
+		Handler: c.r,
+	}
+
+	err := c.srv.ListenAndServe()
+	if err != http.ErrServerClosed && err != net.ErrClosed {
+		return fmt.Errorf("error running http server: %w", err)
+	}
+
+	return nil
+}
+
+func (c Controller) Shutdown(ctx context.Context) error {
+	err := c.srv.Shutdown(ctx)
+	if err != nil {
+		return fmt.Errorf("error shutting down http server: %w", err)
+	}
+	return nil
+}
+
+func (c Controller) String() string {
+	return fmt.Sprintf("HTTP controller at " + c.listenAddress)
 }

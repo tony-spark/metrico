@@ -6,14 +6,14 @@ import (
 
 	"github.com/tony-spark/metrico/internal/agent"
 	"github.com/tony-spark/metrico/internal/agent/metrics"
-	"github.com/tony-spark/metrico/internal/agent/transports"
+	"github.com/tony-spark/metrico/internal/agent/transports/http"
 )
 
 // This example runs agent with default poll interval, 15 seconds report interval, only with random value metric
 func Example() {
 	a := agent.New(
 		agent.WithReportInterval(15*time.Second),
-		agent.WithTransport(transports.NewHTTP("http://localhost:3000")),
+		agent.WithTransport(http.NewTransport("http://localhost:3000")),
 		agent.WithCollectors(
 			metrics.NewRandomMetricCollector(),
 		),

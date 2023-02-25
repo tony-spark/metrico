@@ -115,9 +115,12 @@ func main() {
 	wConfig := wrapcheck.NewDefaultConfig()
 	wConfig.IgnoreSigRegexps = append(wConfig.IgnoreSigRegexps,
 		`.*github.com/tony-spark/metrico/internal/.*`, // ignore error wrapping in internal packages
+		`.*github.com/tony-spark/metrico/gen/.*`,      // ignore error wrapping in generated code
+		`.*google.golang.org/grpc.*`,
 	)
 	wConfig.IgnoreSigs = append(wConfig.IgnoreSigs,
-		"func github.com/hashicorp/go-multierror.Append(err error, errs ...error) *github.com/hashicorp/go-multierror.Error")
+		"func github.com/hashicorp/go-multierror.Append(err error, errs ...error) *github.com/hashicorp/go-multierror.Error",
+		"func (*golang.org/x/sync/errgroup.Group).Wait() error")
 	checks = append(checks, wrapcheck.NewAnalyzer(wConfig))
 
 	checks = append(checks, osexit.Analyzer)
